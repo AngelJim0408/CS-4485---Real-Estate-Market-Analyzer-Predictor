@@ -1,3 +1,4 @@
+.env
 # datasets
 proj_experimental_model_test/data_raw
 proj_experimental_model_test/data_proc

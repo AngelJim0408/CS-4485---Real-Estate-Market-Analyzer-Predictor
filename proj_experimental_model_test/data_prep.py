@@ -6,7 +6,8 @@
 import pandas as pd
 from pathlib import Path
 from datetime import date
-from data_source import pull_dallas_crime
+
+import data_source as ds
 
 data_yr = date.today().year - 1 
 
@@ -21,10 +22,18 @@ if path_data_raw.exists() and path_data_raw.is_dir():
 else:
     print("Missing data_raw folder. Download from Google Drive.")
     
+"""
+Crime Data Sources, Pulled from Cities in Dallas County
+"""
+if Path(path_crime_data_raw / f"fbi_agencies.csv").exists():
+    crime_agencies = pd.read_csv(path_crime_data_raw / f"fbi_agencies.csv")
+else:
+    crime_agencies = ds.pull_fbi_agencies("TX")
+
 ## Hardcode to test is dallas_crime_raw csv exists
 if Path(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv").exists():
     crime_df_dallas = pd.read_csv(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv")
 else:
-    crime_df_dallas = pull_dallas_crime(data_yr)
+    crime_df_dallas = ds.pull_dallas_crime(data_yr)
 
-print(crime_df_dallas.head())
+print(crime_agencies.head())
