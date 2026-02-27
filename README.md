@@ -17,3 +17,4 @@ Notes: Crime Data so far only from Dallas PD, may need from each city + Sheriff'
 
 ## data_source.py
 - Holds functions to pull data from online websites
+- Use API key from FBI CDE API (key is free, can get on your own and update in your own .env file)
