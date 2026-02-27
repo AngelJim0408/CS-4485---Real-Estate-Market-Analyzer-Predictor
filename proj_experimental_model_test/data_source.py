@@ -21,22 +21,31 @@ FBI_API_KEY = os.getenv("FBI_API_KEY")
 main_path = Path("proj_experimental_model_test")
 url_fbi = "https://api.usa.gov/crime/fbi/cde"
 
-def pull_fbi_agencies(state="TX"):
+def pull_fbi_agencies(state="TX", county_filter="DALLAS"):
     url_agencies = f"{url_fbi}/agency/byStateAbbr/{state}?API_KEY={FBI_API_KEY}"
 
     response = requests.get(url_agencies)
     response.raise_for_status() # check for success
     data = response.json()
 
-    results_df = pd.json_normalize(data)
-    results_df = pd.DataFrame(results_df)
+    agencies = []
+    for county_key, agency_list in data.items():
+        if county_filter in county_key:  # includes single and multi-county agencies
+            agencies.extend(agency_list)
+    
+    if agencies:
+        results_df = pd.json_normalize(agencies)
 
-    # Save to csv so we don't need to call api
-    # create path if does not exist
-    output_path = Path(main_path / "data_raw/crime_data/fbi_data")
-    output_path.mkdir(parents=True, exist_ok=True)
+        # Save to csv so we don't need to call api
+        # create path if does not exist
+        output_path = Path(main_path / "data_raw/crime_data/fbi_data")
+        output_path.mkdir(parents=True, exist_ok=True)
 
-    results_df.to_csv(output_path  / f"fbi_agencies.csv", index=False, lineterminator="\n")
+        results_df.to_csv(output_path  / f"fbi_agencies.csv", index=False, lineterminator="\n")
+    else:
+        results_df = pd.DataFrame()
+        
+    return results_df
 
 def pull_fbi_crime(year=None,city=None,state="TX"):
     """
