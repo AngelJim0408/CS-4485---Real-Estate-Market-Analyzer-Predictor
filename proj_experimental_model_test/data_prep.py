@@ -8,8 +8,10 @@ from pathlib import Path
 from datetime import date
 
 import data_source as ds
+import city_config
 
 data_yr = date.today().year - 1 
+year_start = 2018
 
 # Main Folder Path
 main_folder = Path("proj_experimental_model_test")
@@ -23,12 +25,31 @@ else:
     print("Missing data_raw folder. Download from Google Drive.")
     
 """
-Crime Data Sources, Pulled from Cities in Dallas County
+Prepare Crime Data Sources, Pulled from Cities in Dallas County
 """
-if Path(path_crime_data_raw / f"fbi_agencies.csv").exists():
-    crime_agencies = pd.read_csv(path_crime_data_raw / f"fbi_agencies.csv")
+## Agencies (TX/Dallas County)
+"""
+if Path(path_crime_data_raw / f"fbi_data/fbi_agencies.csv").exists():
+    crime_agencies = pd.read_csv(path_crime_data_raw / f"fbi_data/fbi_agencies.csv")
 else:
     crime_agencies = ds.pull_fbi_agencies("TX")
+
+"""
+if Path(path_crime_data_raw / f"crime_violent_{data_yr}.csv").exists():
+    crime_violent_df = pd.read_csv(path_crime_data_raw / f"crime_violent_{data_yr}.csv")
+else:
+    agency_city = pd.read_csv(path_data_raw / "tables/agency_city.csv")
+    crime_violent_df = pd.DataFrame(columns=["agency","month","offenses_per_100k","offenses","clearances","population"])
+
+    for row in agency_city.itertuples():
+        crime_v_agency_df = ds.pull_crime_by_agency(row.agency_id,row.agency_name,data_yr,"V")
+        if crime_violent_df.empty:
+            crime_violent_df = crime_v_agency_df
+        else:
+            crime_violent_df = pd.concat([crime_violent_df, crime_v_agency_df], ignore_index=True)
+
+    crime_violent_df.to_csv(path_crime_data_raw / f"crime_violent_{data_yr}.csv", index=False)
+
 
 ## Hardcode to test is dallas_crime_raw csv exists
 if Path(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv").exists():
@@ -36,4 +57,4 @@ if Path(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv").exists():
 else:
     crime_df_dallas = ds.pull_dallas_crime(data_yr)
 
-print(crime_agencies.head())
+print(agency_city.head())

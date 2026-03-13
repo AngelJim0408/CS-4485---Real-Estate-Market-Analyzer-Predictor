@@ -52,24 +52,41 @@ def pull_fbi_agencies(state="TX", county_filter="DALLAS"):
 
     return results_df
 
-def pull_crime_by_agency(agency_ori, offense="V"):
-    url_summary = f"{url_fbi}/summarized/agency/{agency_ori}/{offense}?API_KEY={FBI_API_KEY}"
+def pull_crime_by_agency(agency_ori, agency_name, year, offense="V"):
+    url_summary = f"{url_fbi}/summarized/agency/{agency_ori}/{offense}?"
+    params = {'from' : f'01-{year}', 'to' : f'12-{year}', 'API_KEY' : f'{FBI_API_KEY}'}
 
-    response = requests.get(url_summary)
+    response = requests.get(url_summary, params=params)
     response.raise_for_status()
     data = response.json()
 
-    results_df = pd.json_normalize(data)
+    if data:
+        rows = []
 
-    if not results_df:
-        results_df = pd.DataFrame()
+        offense_per_100k = data["offenses"]["rates"][f"{agency_name} Offenses"]
+        offenses = data["offenses"]["actuals"][f"{agency_name} Offenses"]
+        clearances = data["offenses"]["actuals"][f"{agency_name} Clearances"]
+        population = data["populations"]["population"][f"{agency_name}"]
 
-    return results_df
+        for month in offenses:
+            rows.append({
+                "agency": agency_ori,
+                "month": month,
+                "offenses_per_100k" : offense_per_100k[month],
+                "offenses": offenses[month],
+                "clearances": clearances[month],
+                "population": population[month]
+            })
+        results_df = pd.DataFrame(rows)
+        return results_df
+    else:
+        return pd.DataFrame()
 
 def pull_fbi_crime(year=None,city=None,state="TX"):
     """
     Default for when cities don't provide own data. Yearly crime incident reports (NIBRS)
     - pulls fbi crime data by agency
+    - may need to change to get monthly reports
     """
     url_violent = f"{url_fbi}/summarized/{state}/V"
     url_property = f"{url_fbi}/summarized/{state}/P"
@@ -113,4 +130,10 @@ def pull_dallas_crime(year=None):
 
         results_df.to_csv(output_path  / f"dallas_crime_raw_{year}.csv", index=False)
     return results_df
+
+# School Rating Pulling
+def pull_school_rating(year=None):
+    return 0
+
+# 
     
