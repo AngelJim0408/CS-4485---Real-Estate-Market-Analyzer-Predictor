@@ -19,14 +19,45 @@ main_folder = Path("proj_experimental_model_test")
 path_data_raw = Path(main_folder / "data_raw")
 path_crime_data_raw = Path(path_data_raw / "crime_data")
 
+# Data Frames Collected
+zhvi_dallas_county_df = None
+
+zillow_sales_df = None
+zillow_rent_df = None
+zillow_listings_df = None
+zillow_inventory_df = None
+
+crime_violent_df = None
+crime_property_df = None
+
+school_rating_df = None
+
+
 if path_data_raw.exists() and path_data_raw.is_dir():
     print("Raw data folder found.")
 else:
     print("Missing data_raw folder. Download from Google Drive.")
     
-"""
-Prepare Crime Data Sources, Pulled from Cities in Dallas County
-"""
+# 1.PRICE MOMENTUM
+## Get ZHVI from Zillow
+zhvi_dallas_county_df = ds.get_zhvi_data() # Can calculate lag, growth, volatility from this data
+
+# 2.SUPPLY AND DEMAND
+zillow_sales_df = ds.get_zillow_supply('sales_count') # metro-lvl
+zillow_rent_df = ds.get_zillow_supply('rent') # zip-lvl
+zillow_listings_df = ds.get_zillow_supply('new_listings') # metro-lvl
+zillow_inventory_df = ds.get_zillow_supply('inventory') # metro-lvl
+
+# 3.ECONOMIC ENVIRONMENT
+
+
+# 4.NEIGHBORHOOD QUALITY
+
+## Get School Rating Data for every agency listed
+school_rating_df = ds.get_school_rating(data_yr)
+
+# 5.SAFETY
+
 ## Agencies (TX/Dallas County)
 """
 if Path(path_crime_data_raw / f"fbi_data/fbi_agencies.csv").exists():
@@ -35,26 +66,20 @@ else:
     crime_agencies = ds.pull_fbi_agencies("TX")
 
 """
-if Path(path_crime_data_raw / f"crime_violent_{data_yr}.csv").exists():
-    crime_violent_df = pd.read_csv(path_crime_data_raw / f"crime_violent_{data_yr}.csv")
-else:
-    agency_city = pd.read_csv(path_data_raw / "tables/agency_city.csv")
-    crime_violent_df = pd.DataFrame(columns=["agency","month","offenses_per_100k","offenses","clearances","population"])
 
-    for row in agency_city.itertuples():
-        crime_v_agency_df = ds.pull_crime_by_agency(row.agency_id,row.agency_name,data_yr,"V")
-        if crime_violent_df.empty:
-            crime_violent_df = crime_v_agency_df
-        else:
-            crime_violent_df = pd.concat([crime_violent_df, crime_v_agency_df], ignore_index=True)
-
-    crime_violent_df.to_csv(path_crime_data_raw / f"crime_violent_{data_yr}.csv", index=False)
+## Get Crime Data for every agency listed in "agency_city.csv"
+#   P = Property, V = Violent
+#   Get offense per 100k people, offense count, clearance count, population of jurisdiction.
+crime_violent_df = ds.get_crimes_df(data_yr,path_crime_data_raw,'V')
+crime_property_df = ds.get_crimes_df(data_yr,path_crime_data_raw,'P')
 
 
+"""
 ## Hardcode to test is dallas_crime_raw csv exists
 if Path(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv").exists():
     crime_df_dallas = pd.read_csv(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv")
 else:
     crime_df_dallas = ds.pull_dallas_crime(data_yr)
+"""
 
-print(agency_city.head())
+# 6.SEASON/CLIMATE

@@ -8,6 +8,7 @@ Additional Needs:
 - pip install sodapy (this is used for the Socrata API some of the websites use for data access)
 - pip install python-dotenv
 - pip install requests
+- pip install openpyxl
 
 [Google Drive Folder for data_raw folder](https://drive.google.com/drive/folders/1seUFRsYqhGi5qOp8wu10wKWhvJhGiJOq?usp=sharing)
 
