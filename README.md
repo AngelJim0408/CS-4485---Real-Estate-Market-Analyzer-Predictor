@@ -18,4 +18,10 @@ Notes: Crime Data so far only from Dallas PD, may need from each city + Sheriff'
 
 ## data_source.py
 - Holds functions to pull data from online websites
-- Use API key from FBI CDE API (key is free, can get on your own and update in your own .env file)
+- Use API key from FBI CDE API (key is free, can get on your own and update in your own .env file) ex: FBI_API_KEY=yourAPIkeyHERE
+- Census API does not require key.
+
+## data_collect.py
+Run this program once, and it will collect various data from website or API calls (some only works with physical download). All files will be stored in data_raw to be ready for processing into feature vectors.
+
+Note: Currently saves into csv files, later move to Database.

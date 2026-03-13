@@ -12,6 +12,8 @@ import city_config
 
 data_yr = date.today().year - 1 
 year_start = 2018
+year_end = data_yr - 2
+year_validation = data_yr - 1
 
 # Main Folder Path
 main_folder = Path("proj_experimental_model_test")
@@ -27,11 +29,14 @@ zillow_rent_df = None
 zillow_listings_df = None
 zillow_inventory_df = None
 
+mortgage_rates_df = None
+unemployment_rates_df = None
+median_income_df = None
+
 crime_violent_df = None
 crime_property_df = None
 
 school_rating_df = None
-
 
 if path_data_raw.exists() and path_data_raw.is_dir():
     print("Raw data folder found.")
@@ -50,11 +55,15 @@ zillow_inventory_df = ds.get_zillow_supply('inventory') # metro-lvl
 
 # 3.ECONOMIC ENVIRONMENT
 
+mortgage_rates_df = ds.get_mortgage_rates() # Weekly level (based on country)
+
+unemployment_rates_df = ds.get_unemployment(data_yr) # County-lvl (Can try zip level if need be)
+median_income_df = ds.get_med_income(data_yr)
 
 # 4.NEIGHBORHOOD QUALITY
 
 ## Get School Rating Data for every agency listed
-school_rating_df = ds.get_school_rating(data_yr)
+school_rating_df = ds.get_school_rating(data_yr) 
 
 # 5.SAFETY
 
@@ -82,4 +91,5 @@ else:
     crime_df_dallas = ds.pull_dallas_crime(data_yr)
 """
 
-# 6.SEASON/CLIMATE
+# 6.SEASON/CLIMATE/Quarter
+## Since all data already come with dates, we do not need to 'collect' months/quarters.
