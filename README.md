@@ -28,4 +28,9 @@ Currently, collects data from 2018 to (current year - 1).
 Data Organized by *Weeks*: mortgage rates
 Data Organized by *Months*: crime (property & violent), unemployment rates, inventory, new listings, rent, sales
 Data Organized by *Year*: medium income & population, school rating
+
+API Keys, create a file called .env in the folder "proj_experimental_model_test"
+Type into it: "FBI_API_KEY=yourAPIkeyHere" in the file
+- Reminder: replace yourAPIkeyHere with your own API key for the FBI Crime Data Explorer, it is free and just requires your e-mail.
+
 Note: Currently saves into csv files, later move to Database.
