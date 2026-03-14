@@ -8,7 +8,6 @@ from pathlib import Path
 from datetime import date
 
 import data_source as ds
-import city_config
 
 data_yr = date.today().year - 1 
 year_start = 2018
@@ -31,12 +30,13 @@ zillow_inventory_df = None
 
 mortgage_rates_df = None
 unemployment_rates_df = None
-median_income_df = None
+median_income_df = {}
 
-crime_violent_df = None
-crime_property_df = None
+school_rating_df = {}
 
-school_rating_df = None
+crime_violent_df = {}
+crime_property_df = {}
+
 
 if path_data_raw.exists() and path_data_raw.is_dir():
     print("Raw data folder found.")
@@ -56,16 +56,22 @@ zillow_inventory_df = ds.get_zillow_supply('inventory') # metro-lvl
 # 3.ECONOMIC ENVIRONMENT
 
 mortgage_rates_df = ds.get_mortgage_rates() # Weekly level (based on country)
-
 unemployment_rates_df = ds.get_unemployment(data_yr) # County-lvl (Can try zip level if need be)
-median_income_df = ds.get_med_income(data_yr)
 
-# 4.NEIGHBORHOOD QUALITY
+for year in range(year_start, data_yr):
+    median_income_df[year] = ds.get_med_income(year)
 
-## Get School Rating Data for every agency listed
-school_rating_df = ds.get_school_rating(data_yr) 
+    # 4.NEIGHBORHOOD QUALITY
 
-# 5.SAFETY
+    ## Get School Rating Data for every agency listed
+    school_rating_df[year] = ds.get_school_rating(year) 
+
+    # 5.SAFETY
+    ## Get Crime Data for every agency listed in "agency_city.csv"
+    #   P = Property, V = Violent
+    #   Get offense per 100k people, offense count, clearance count, population of jurisdiction.
+    crime_violent_df[year] = ds.get_crimes_df(year,path_crime_data_raw,'V')
+    crime_property_df[year] = ds.get_crimes_df(year,path_crime_data_raw,'P')
 
 ## Agencies (TX/Dallas County)
 """
@@ -75,12 +81,6 @@ else:
     crime_agencies = ds.pull_fbi_agencies("TX")
 
 """
-
-## Get Crime Data for every agency listed in "agency_city.csv"
-#   P = Property, V = Violent
-#   Get offense per 100k people, offense count, clearance count, population of jurisdiction.
-crime_violent_df = ds.get_crimes_df(data_yr,path_crime_data_raw,'V')
-crime_property_df = ds.get_crimes_df(data_yr,path_crime_data_raw,'P')
 
 
 """
@@ -93,3 +93,28 @@ else:
 
 # 6.SEASON/CLIMATE/Quarter
 ## Since all data already come with dates, we do not need to 'collect' months/quarters.
+
+## If want to see what each dataframe as, print it (just print the head, since df can have too large values)
+"""
+print(zhvi_dallas_county_df.head())
+
+print(zillow_sales_df.head())
+print(zillow_rent_df.head())
+print(zillow_listings_df.head())
+print(zillow_inventory_df.head())
+
+print(mortgage_rates_df.head())
+print(unemployment_rates_df.head())
+
+median_income_df[2018]
+...
+median_income_df[2025]
+
+
+school_rating_df[2018]
+... (Skip 2020, 2021 : Both will use 2019 data, since texas did not release school score data during this period[covid])
+school_rating_df[2025]
+
+print(crime_violent_df.head())
+print(crime_property_df.head())
+"""

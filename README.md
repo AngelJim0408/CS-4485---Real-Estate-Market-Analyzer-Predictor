@@ -24,4 +24,8 @@ Notes: Crime Data so far only from Dallas PD, may need from each city + Sheriff'
 ## data_collect.py
 Run this program once, and it will collect various data from website or API calls (some only works with physical download). All files will be stored in data_raw to be ready for processing into feature vectors.
 
+Currently, collects data from 2018 to (current year - 1).
+Data Organized by *Weeks*: mortgage rates
+Data Organized by *Months*: crime (property & violent), unemployment rates, inventory, new listings, rent, sales
+Data Organized by *Year*: medium income & population, school rating
 Note: Currently saves into csv files, later move to Database.
