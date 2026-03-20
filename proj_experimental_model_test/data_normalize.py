@@ -12,3 +12,12 @@ def flatten_dataframes(data_dict: dict) -> pd.DataFrame:
             new_frames.append(dataframe)
 
     return pd.concat(new_frames, ignore_index=True)
+
+def change_table_columns(dataframe):
+    # get the dataframe
+    # get columns corresponding to date,
+    # create new columns for month and year, and value
+
+    # assign ordingly
+    # return the new dataframe with modified columns
+    return dataframe
