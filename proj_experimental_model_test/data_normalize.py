@@ -22,26 +22,29 @@ def change_table_columns(dataframe):
     # return the new dataframe with modified columns
     return dataframe
 
+
 def build_merged_df(
-    zhvi: pd.DataFrame,             # (date, zipcode, zhvi)
-    sales: pd.DataFrame,            # (date, zipcode, sales_count)
-    rent: pd.DataFrame,             # (date, zipcode, rent)
-    listings: pd.DataFrame,         # (date, zipcode, listings)
-    inventory: pd.DataFrame,        # (date, zipcode, inventory)
-    mortgage: pd.DataFrame,         # (date, mortgage_rate)
-    unemployment: pd.DataFrame,     # (date, unemployment_rate)
-    income: pd.DataFrame,           # (date, zipcode, median_income)  — already ffilled to monthly
-    school: pd.DataFrame,           # (date, zipcode, school_rating)
-    crime_violent: pd.DataFrame,    # (date, zipcode, crime_violent)
-    crime_property: pd.DataFrame,   # (date, zipcode, crime_property)
+    zhvi: pd.DataFrame,             # (zipcode, year, month, zhvi)
+    sales: pd.DataFrame,            # (year, month, sales_count)
+    rent: pd.DataFrame,             # (zipcode, year, month, rent)
+    listings: pd.DataFrame,         # (year, month, listings)
+    inventory: pd.DataFrame,        # (year, month, inventory)
+    mortgage: pd.DataFrame,         # (year, month, mortgage_rate)
+    unemployment: pd.DataFrame,     # (year, month, unemployment_rate)
+    income: pd.DataFrame,           # (zipcode, year, month, median_income)  — already ffilled to monthly
+    school: pd.DataFrame,           # (zipcode, year, month, school_rating)
+    crime_violent: pd.DataFrame,    # (zipcode, year, month, crime_violent)
+    crime_property: pd.DataFrame,   # (zipcode, year, month, crime_property)
 ) -> pd.DataFrame:
+    
     """
     combine dataframes into one master dataframe.
     Needed to for feature engineering.
     """
+    main_df = zhvi.copy()
 
     # Join by zip code
 
     # Join by date (month / year)
 
-    return dataframe
+    return main_df

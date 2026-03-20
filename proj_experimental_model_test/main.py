@@ -21,6 +21,7 @@ if __name__ == "__main__":
         "__________________________________________\n" \
         "1. Collect Data\n" \
         "2. Process Raw Data\n" \
+        "3. Get campus_zip data\n" \
         "q. Quit Program. ")
 
         user_input = input("Enter the menu option number: ")
@@ -45,6 +46,9 @@ if __name__ == "__main__":
                 data_class.process_data(dn,main_path)
 
                 print("Data finished processing. Check data_proc folder.")
+            case '3':
+                df = ds.get_campus_zip_data()
+                print(df.head())
             case 'q':
                 print("Quitting Program.")
 

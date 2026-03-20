@@ -45,6 +45,33 @@ def get_zcta_county(year, county_id=48113):
 
     return county_zctas
 
+def download_tea_school_directory(save_path):
+    """
+    Downloads the TEA school and district data file for a given school year.
+    year=2018 → downloads the 2018-2019 school year file.
+    """
+    # AskTED download endpoint — county filter 057 = Dallas County
+    url = (
+        "https://tealprod.tea.state.tx.us/Tea.AskTed.Web/Forms/DownloadDefault.aspx"
+    )
+    r = requests.get(url)
+    with open(save_path, "wb") as f:
+        f.write(r.content)
+    print(f"Saved: {save_path}")
+
+def get_campus_zip_data():
+    target_path = main_path / "data_raw/school_data/school_directory.csv"
+    if Path(target_path).exists():
+        campus_zip_df = pd.read_csv(target_path)
+    else:
+        download_tea_school_directory(target_path)
+        campus_zip_df = pd.read_csv(target_path)
+
+    campus_zip_df = campus_zip_df[campus_zip_df['County Name'] == 'DALLAS COUNTY']
+    campus_zip_df = campus_zip_df[['School Name','School Zip']]
+    campus_zip_df.rename(columns={'School Name' : 'campus', 'School Zip' : 'zipcode'}, inplace=True)
+    
+    return campus_zip_df
 # -------------
 
 # 1. PRICE MOMENTUM DATA PULLING/GETTING
