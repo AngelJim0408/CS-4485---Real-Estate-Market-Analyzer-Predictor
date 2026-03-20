@@ -21,7 +21,9 @@ DALLAS_COUNTY_GEOID = 48113
 
 FBI_API_KEY = os.getenv("FBI_API_KEY")
 
-main_path = Path("proj_experimental_model_test")
+current_file_path = Path(__file__).resolve()
+main_path = Path(current_file_path.parent)
+
 url_fbi = "https://api.usa.gov/crime/fbi/cde"
 
 # Base Worker functs/script
@@ -41,6 +43,7 @@ def get_zcta_county(year, county_id=48113):
     ]["GEOID_ZCTA5_20"].dropna().unique()
 
     return county_zctas
+
 # -------------
 
 # 1. PRICE MOMENTUM DATA PULLING/GETTING
@@ -119,11 +122,11 @@ def get_zillow_supply(type):
 
 # 3. Economice Environment
 def pull_mortgage_rates():
-    target_path = main_path / "data_raw/economic_env/mortgage_rates_weekly.csv"
+    target_path = main_path / "data_raw/economic_env/mortgage_rates_weekly.xlsx"
     url = "https://www.freddiemac.com/pmms/docs/historicalweeklydata.xlsx"
     writeWebToLocal(url, target_path)
 
-    return pd.read_csv(target_path)
+    return pd.read_excel(target_path)
 
 def pull_unemployment(year_end, year_start):
     target_path = main_path / "data_raw/economic_env/unemployment_rates.csv"
@@ -227,12 +230,16 @@ def get_school_rating(year=None):
     school_data_path = Path(main_path / "data_raw/school_data")
 
     if year == 2018:
-        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", usecols=['District Name','Campus Name','Region Name','County Name','School Type','Overall\nScore'])
+        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", usecols=['District Name','Campus Name','Region Name','County Name','Overall\nScore'])
         school_rating_df = school_rating_df[school_rating_df['County Name'] == 'DALLAS']
-        school_rating_df = school_rating_df[school_rating_df['Campus Name'] != None]
+        school_rating_df = school_rating_df.dropna(subset=['Campus Name'])
 
-        school_rating_df.rename(columns={'District Name' : 'District','Campus Name' : 'Campus','Region Name' : 'Region',
-                                         'County Name': 'County','School\nType' : 'SchoolType','Overall\nScore' : 'Score'}, inplace=True)
+        school_rating_df.rename(columns={'District Name' : 'district','Campus Name' : 'campus','Region Name' : 'region',
+                                         'County Name': 'county','Overall\nScore' : 'score'}, inplace=True)
+        
+        school_rating_df['district'] = school_rating_df['district'].str.replace('\n',' ')
+        school_rating_df['campus'] = school_rating_df['campus'].str.replace('\n',' ')
+        school_rating_df['region'] = school_rating_df['region'].str.slice(start=11)
         
         return school_rating_df
     elif 2018 < year < 2023: # uses xlsx files
@@ -240,19 +247,31 @@ def get_school_rating(year=None):
         if year == 2019:
             skiprows = 2
         # This era has 'County' listed as well as rating through 'Overall Rating' and 'Overall Score'
-        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", skiprows=skiprows, usecols=['District','Campus','Region','County','School\nType','Overall\nScore'])
+        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", skiprows=skiprows, usecols=['District','Campus','Region','County','Overall\nScore'])
         school_rating_df = school_rating_df[school_rating_df['County'] == 'DALLAS']
-        school_rating_df = school_rating_df[school_rating_df['Campus'] != None]
+        school_rating_df = school_rating_df.dropna(subset=['Campus'])
         
-        school_rating_df.rename(columns={'School\nType' : 'SchoolType','Overall\nScore' : 'Score'}, inplace=True)
+        school_rating_df.rename(columns={'District' : 'district','Campus' : 'campus' ,'Region': 'region','County' : 'county','Overall\nScore' : 'score'}, inplace=True)
+
+        school_rating_df['district'] = school_rating_df['district'].str.replace('\n',' ')
+        school_rating_df['campus'] = school_rating_df['campus'].str.replace('\n',' ')
+
+        school_rating_df['region'] = school_rating_df['region'].str.slice(start=10)
+
         return school_rating_df
     
     elif 2022 < year:
         # County now has id, countyname in 'CNTYNAME', ratings through 'C_RATING' and 'CDALLS'
-        school_rating_df = pd.read_csv(school_data_path / f"{year}_school_raw.csv", usecols=['CAMPNAME','DISTNAME','CNTYNAME','REGNNAME','C_RATING','CDALLS'])
+        school_rating_df = pd.read_csv(school_data_path / f"{year}_school_raw.csv", usecols=['CAMPNAME','DISTNAME','CNTYNAME','REGNNAME','CDALLS'])
         school_rating_df = school_rating_df[school_rating_df['CNTYNAME'] == 'DALLAS']
-        school_rating_df = school_rating_df[school_rating_df['CAMPNAME'] != None]
-        school_rating_df.rename(columns={'CAMPNAME' : 'Campus','DISTNAME' : 'District','CNTYNAME' : 'County','REGNNAME' : 'Region','CDALLS' : 'Score'}, inplace=True)
+        school_rating_df = school_rating_df.dropna(subset=['CAMPNAME'])
+        school_rating_df = school_rating_df.dropna(subset=['CDALLS'])
+
+        school_rating_df.rename(columns={'CAMPNAME' : 'campus','DISTNAME' : 'district','CNTYNAME' : 'county','REGNNAME' : 'region','CDALLS' : 'score'}, inplace=True)
+        
+        school_rating_df['region'] = school_rating_df['region'].str.slice(start=10)
+        school_rating_df['score'] = school_rating_df['score'].astype(int)
+
         return school_rating_df
     else:
         return None
@@ -361,19 +380,19 @@ def pull_dallas_crime(year=None):
         results_df.to_csv(output_path  / f"dallas_crime_raw_{year}.csv", index=False)
     return results_df
 
-def get_crimes_df(year, path_crime_data_raw, type):
+def get_crimes_df(year, type):
     """
     Get crime of type V (violent) or P (property), return as dataframe
     """
     if type == 'V':
-        filepath = f"violent/crime_violent_{year}.csv"
+        filepath = f"data_raw/crime_data/violent/crime_violent_{year}.csv"
     elif type == 'P':
-        filepath = f"property/crime_property_{year}.csv"
+        filepath = f"data_raw/crime_data/property/crime_property_{year}.csv"
     else:
         return None
-    
-    if Path(path_crime_data_raw / filepath).exists():
-        crime_df = pd.read_csv(path_crime_data_raw / filepath)
+
+    if Path(main_path / filepath).exists():
+        crime_df = pd.read_csv(main_path / filepath)
     else:
         agency_city = pd.read_csv(main_path / "data_raw/tables/agency_city.csv")
         crime_df = pd.DataFrame(columns=["agency","month","offenses_per_100k","offenses","clearances","population"])
@@ -385,5 +404,5 @@ def get_crimes_df(year, path_crime_data_raw, type):
             else:
                 crime_df = pd.concat([crime_df, crime_v_agency_df], ignore_index=True)
 
-        crime_df.to_csv(path_crime_data_raw / filepath, index=False)
+        crime_df.to_csv(main_path / filepath, index=False)
     return crime_df
