@@ -41,6 +41,7 @@ def get_zcta_county(year, county_id=48113):
     county_zctas = cross[
         cross["GEOID_COUNTY_20"] == f'{county_id}' # ex 48113 = 48: TX, 113: Dallas County
     ]["GEOID_ZCTA5_20"].dropna().unique()
+    
 
     return county_zctas
 
@@ -62,7 +63,11 @@ def get_zhvi_data():
     else:
         zhvi_df = pull_zhvi_data()
     # zhvi has all zipcodes, we clean to get just the ones in dallas county.
-    dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"]
+    dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"].copy()
+
+    dallas_zhvi_df.drop(columns=['RegionID','SizeRank','RegionType','StateName','State','City','Metro','CountyName'], inplace=True)
+    dallas_zhvi_df.rename(columns={'RegionName' : 'zipcode'}, inplace=True)
+    
     return dallas_zhvi_df
 
 # 2. SUPPLY DEMAND DATA PULLING/GETTING
@@ -118,6 +123,17 @@ def get_zillow_supply(type):
                 return None
     # zhvi has all zipcodes, we clean to get just the ones in dallas county.
     #dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"]
+    if 'CountyName' in zillow_supplydemand_df.columns:
+        zillow_supplydemand_df = zillow_supplydemand_df[zillow_supplydemand_df["CountyName"] == "Dallas County"].copy()
+
+        zillow_supplydemand_df.drop(columns=['RegionID','SizeRank','RegionType','StateName','State','City','Metro','CountyName'], inplace=True)
+        zillow_supplydemand_df.rename(columns={'RegionName' : 'zipcode'}, inplace=True)
+    else: # Doesn't use county, use msa (zillow data either in county zips or msa (Dallas-Fort Worth-Arlington))
+        zillow_supplydemand_df = zillow_supplydemand_df[zillow_supplydemand_df["RegionName"] == "Dallas, TX"].copy()
+        #RegionID,SizeRank,RegionName,RegionType,StateName, 
+        zillow_supplydemand_df.drop(columns=['RegionID','SizeRank','RegionType','StateName'], inplace=True)
+        zillow_supplydemand_df.rename(columns={'RegionName' : 'msa'}, inplace=True) # msa = Metropolitan Statistical Area
+
     return zillow_supplydemand_df
 
 # 3. Economice Environment
@@ -213,6 +229,7 @@ def get_med_income(year):
     else:
         med_income_df = pull_med_income(year)
 
+    med_income_df = med_income_df[med_income_df['median_income'] != -666666666]
     return med_income_df
 
 
