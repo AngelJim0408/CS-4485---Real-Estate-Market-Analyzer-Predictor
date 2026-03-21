@@ -53,7 +53,6 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame):
     TX0571300 Highland Park 75205, 75209, 75219	 <- keep for Real estate Data
 
     TX0570600 Cockrell Hill 75211			 <- entirely inside Dallas PD
-    TX0571300 Highland Park 75205, 75209, 75219	 <- keep for Real estate Data
     TX0572400 Wilmer 	75172			 <- small population
     TX0574700 Glenn Heights 75154			 <- Small presence
     TX0575500 Ovilla	75154			 <- Small presence
@@ -62,7 +61,18 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame):
     TX0430800 Wylie		75098 			 <- Remove (Mostly Collin County)
     """
     df = pd.merge(df,agency_zip,on='agency',how='left')
+    df.dropna(subset=['zipcode'], inplace=True)
+    df.dropna(subset=['offenses'], inplace=True)
+
+    df["zipcode"] = (
+        df["zipcode"]
+        .astype(str)
+        .str.replace(r"\.0$", "", regex=True)  # remove trailing .0
+        .str.zfill(5)                           # ensure 5-digit padding
+    )
+
     df = df[['zipcode','agency','month','offenses_per_100k','offenses','clearances']]
+
     return df
 
 def build_merged_df(
@@ -75,8 +85,8 @@ def build_merged_df(
     unemployment: pd.DataFrame,     # (year, month, unemployment_rate)
     income: pd.DataFrame,           # (zipcode, year, month, median_income)  — already ffilled to monthly
     school: pd.DataFrame,           # *(zipcode, year, month, school_rating) 
-    crime_violent: pd.DataFrame,    # (zipcode, year, month, crime_violent) 
-    crime_property: pd.DataFrame,   # (zipcode, year, month, crime_property)
+    crime_violent: pd.DataFrame,    # *(zipcode, year, month, crime_violent) 
+    crime_property: pd.DataFrame,   # *(zipcode, year, month, crime_property)
 ) -> pd.DataFrame:
     
     """

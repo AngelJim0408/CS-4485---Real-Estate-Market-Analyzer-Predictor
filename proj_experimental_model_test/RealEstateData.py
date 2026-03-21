@@ -74,7 +74,7 @@ class RealEstateDataClass:
             self.crime_property_dict[year] = self.ds.get_crimes_df(year,'P')
 
             split_date = self.crime_violent_dict[year]['month'].str.split('-', expand=True)
-            self.crime_property_dict[year]['month'] = split_date[0]
+            self.crime_violent_dict[year]['month'] = split_date[0]
 
             split_date = self.crime_property_dict[year]['month'].str.split('-', expand=True)
             self.crime_property_dict[year]['month'] = split_date[0]
@@ -114,9 +114,18 @@ class RealEstateDataClass:
         cols[1], cols[4] = cols[4], cols[1] # swap columns for view purposes (swap score w/ year)
         self.school_ratings_proc = self.school_ratings_proc[cols]
 
+        # flatten: crime
         self.crime_violent_proc = self.dn.flatten_dataframes(self.crime_violent_dict)
         self.crime_property_proc = self.dn.flatten_dataframes(self.crime_property_dict)
 
+        cols_crime_v = list(self.crime_violent_proc.columns)
+        cols_crime_p = list(self.crime_property_proc.columns)
+        cols_crime_v[3], cols_crime_v[6] = cols_crime_v[6], cols_crime_v[3] 
+        cols_crime_p[3], cols_crime_p[6] = cols_crime_p[6], cols_crime_p[3] 
+        self.crime_violent_proc = self.crime_violent_proc[cols_crime_v]
+        self.crime_property_proc = self.crime_property_proc[cols_crime_p]
+
+        # write processed to data_proc
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)
         self.crime_violent_proc.to_csv(main_folder / "data_proc/crime_violent_processed.csv",index=False)
         self.crime_property_proc.to_csv(main_folder / "data_proc/crime_property_processed.csv",index=False)
