@@ -48,7 +48,6 @@ def get_zcta_county(year, county_id=48113):
 def download_tea_school_directory(save_path):
     """
     Downloads the TEA school and district data file for a given school year.
-    year=2018 → downloads the 2018-2019 school year file.
     """
     # AskTED download endpoint — county filter 057 = Dallas County
     url = (
@@ -59,8 +58,18 @@ def download_tea_school_directory(save_path):
         f.write(r.content)
     print(f"Saved: {save_path}")
 
-def get_campus_zip_data():
-    target_path = main_path / "data_raw/school_data/school_directory.csv"
+def get_campus_zip_data(year=None):
+    if year is not None:
+        curr_year = date.today().year
+        if year in range(2018, curr_year - 1):
+            year = max(2019, year)
+            target_path = main_path / f"data_raw/school_data/ArchivedSchoolAndDistrictSpring{year}.csv"
+        else:
+            print(f"File not found for year:{year}")
+            return None
+    else:
+        target_path = main_path / "data_raw/school_data/school_directory.csv"
+
     if Path(target_path).exists():
         campus_zip_df = pd.read_csv(target_path)
     else:
@@ -68,8 +77,10 @@ def get_campus_zip_data():
         campus_zip_df = pd.read_csv(target_path)
 
     campus_zip_df = campus_zip_df[campus_zip_df['County Name'] == 'DALLAS COUNTY']
-    campus_zip_df = campus_zip_df[['School Name','School Zip']]
-    campus_zip_df.rename(columns={'School Name' : 'campus', 'School Zip' : 'zipcode'}, inplace=True)
+    campus_zip_df = campus_zip_df[['School Number','School Name','School Zip']]
+    campus_zip_df['School Number'] = campus_zip_df['School Number'].str[1:]
+
+    campus_zip_df.rename(columns={'School Number' : 'campus_id','School Name' : 'campus', 'School Zip' : 'zipcode'}, inplace=True)
     
     return campus_zip_df
 # -------------
@@ -274,15 +285,15 @@ def get_school_rating(year=None):
     school_data_path = Path(main_path / "data_raw/school_data")
 
     if year == 2018:
-        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", usecols=['District Name','Campus Name','Region Name','County Name','Overall\nScore'])
+        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", usecols=['Campus\nNumber','District Name','Region Name','County Name','Overall\nScore'], dtype={"Campus\nNumber": str})
         school_rating_df = school_rating_df[school_rating_df['County Name'] == 'DALLAS']
-        school_rating_df = school_rating_df.dropna(subset=['Campus Name'])
+        school_rating_df = school_rating_df.dropna(subset=['Campus\nNumber'])
+        school_rating_df = school_rating_df.dropna(subset=['Overall\nScore'])
 
-        school_rating_df.rename(columns={'District Name' : 'district','Campus Name' : 'campus','Region Name' : 'region',
+        school_rating_df.rename(columns={'Campus\nNumber' : 'campus_id','District Name' : 'district','Region Name' : 'region',
                                          'County Name': 'county','Overall\nScore' : 'score'}, inplace=True)
         
         school_rating_df['district'] = school_rating_df['district'].str.replace('\n',' ')
-        school_rating_df['campus'] = school_rating_df['campus'].str.replace('\n',' ')
         school_rating_df['region'] = school_rating_df['region'].str.slice(start=11)
         
         return school_rating_df
@@ -291,14 +302,14 @@ def get_school_rating(year=None):
         if year == 2019:
             skiprows = 2
         # This era has 'County' listed as well as rating through 'Overall Rating' and 'Overall Score'
-        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", skiprows=skiprows, usecols=['District','Campus','Region','County','Overall\nScore'])
+        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", skiprows=skiprows, usecols=['Campus\nNumber','District','Region','County','Overall\nScore'], dtype={"Campus\nNumber": str})
         school_rating_df = school_rating_df[school_rating_df['County'] == 'DALLAS']
-        school_rating_df = school_rating_df.dropna(subset=['Campus'])
+        school_rating_df = school_rating_df.dropna(subset=['Campus\nNumber'])
+        school_rating_df = school_rating_df.dropna(subset=['Overall\nScore'])
         
-        school_rating_df.rename(columns={'District' : 'district','Campus' : 'campus' ,'Region': 'region','County' : 'county','Overall\nScore' : 'score'}, inplace=True)
+        school_rating_df.rename(columns={'Campus\nNumber' : 'campus_id','District' : 'district','Region': 'region','County' : 'county','Overall\nScore' : 'score'}, inplace=True)
 
         school_rating_df['district'] = school_rating_df['district'].str.replace('\n',' ')
-        school_rating_df['campus'] = school_rating_df['campus'].str.replace('\n',' ')
 
         school_rating_df['region'] = school_rating_df['region'].str.slice(start=10)
 
@@ -306,12 +317,12 @@ def get_school_rating(year=None):
     
     elif 2022 < year:
         # County now has id, countyname in 'CNTYNAME', ratings through 'C_RATING' and 'CDALLS'
-        school_rating_df = pd.read_csv(school_data_path / f"{year}_school_raw.csv", usecols=['CAMPNAME','DISTNAME','CNTYNAME','REGNNAME','CDALLS'])
+        school_rating_df = pd.read_csv(school_data_path / f"{year}_school_raw.csv", usecols=['CAMPUS','DISTNAME','CNTYNAME','REGNNAME','CDALLS'], dtype={"CAMPUS": str})
         school_rating_df = school_rating_df[school_rating_df['CNTYNAME'] == 'DALLAS']
-        school_rating_df = school_rating_df.dropna(subset=['CAMPNAME'])
+        school_rating_df = school_rating_df.dropna(subset=['CAMPUS'])
         school_rating_df = school_rating_df.dropna(subset=['CDALLS'])
 
-        school_rating_df.rename(columns={'CAMPNAME' : 'campus','DISTNAME' : 'district','CNTYNAME' : 'county','REGNNAME' : 'region','CDALLS' : 'score'}, inplace=True)
+        school_rating_df.rename(columns={'CAMPUS' : 'campus_id','DISTNAME' : 'district','CNTYNAME' : 'county','REGNNAME' : 'region','CDALLS' : 'score'}, inplace=True)
         
         school_rating_df['region'] = school_rating_df['region'].str.slice(start=10)
         school_rating_df['score'] = school_rating_df['score'].astype(int)

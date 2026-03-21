@@ -7,7 +7,7 @@ from RealEstateData import RealEstateDataClass
 
 if __name__ == "__main__":
     user_input = 0
-    data_class = RealEstateDataClass(ds, 2018)
+    data_class = RealEstateDataClass(ds, dn, 2018)
     current_file_path = Path(__file__).resolve()
     main_path = current_file_path.parent
     
@@ -43,11 +43,12 @@ if __name__ == "__main__":
             case '2':
                 print("Data processing.")
 
-                data_class.process_data(dn,main_path)
+                data_class.process_data(main_path)
 
                 print("Data finished processing. Check data_proc folder.")
             case '3':
-                df = ds.get_campus_zip_data()
+                yr_input = input("Enter year(enter blank if most current): ")
+                df = ds.get_campus_zip_data(int(yr_input))
                 print(df.head())
             case 'q':
                 print("Quitting Program.")

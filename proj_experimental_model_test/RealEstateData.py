@@ -2,8 +2,10 @@ import pandas as pd
 from datetime import date
 
 class RealEstateDataClass:
-    def __init__(self, data_source, year_earliest):
+    def __init__(self, data_source, data_normalize, year_earliest):
         self.ds = data_source
+        self.dn = data_normalize
+
         self.data_yr = date.today().year - 1 
         self.year_start = year_earliest
         self.year_end = self.data_yr - 2
@@ -24,6 +26,10 @@ class RealEstateDataClass:
 
         self.crime_violent_dict = {}
         self.crime_property_dict = {}
+
+        # Data Tables for normalization
+        self.school_directory = None
+        self.school_archived_dir = {}
 
         # Processed data
         self.school_ratings_proc = None
@@ -52,6 +58,7 @@ class RealEstateDataClass:
             # 4.NEIGHBORHOOD QUALITY
             ## Get School Rating Data for every agency listed
             self.school_rating_dict[year] = self.ds.get_school_rating(year) 
+            self.school_archived_dir[year] = self.ds.get_campus_zip_data(year)
 
             # 5.SAFETY
             ## Get Crime Data for every agency listed in "agency_city.csv"
@@ -68,20 +75,30 @@ class RealEstateDataClass:
 
         # 6.SEASON/CLIMATE/Quarter
         ## Since all data already come with dates, we do not need to 'collect' months/quarters.
-
         ## If want to see what each dataframe as, print it (just print the head, since df can have too large values)
+
+        # Access Other Data Tables
+        self.school_directory = self.ds.get_campus_zip_data()
 
         return self
 
-    def process_data(self, data_normalize, main_folder):
-        dn = data_normalize
-
+    def process_data(self, main_folder):
         ## Process school ratings, combine into single dataframe, keep keys consistent.
-        self.school_ratings_proc = dn.flatten_dataframes(self.school_rating_dict)
-        cols = list(self.school_ratings_proc .columns)
-        cols[0], cols[1] = cols[1], cols[0]
 
-        self.school_ratings_proc = self.school_ratings_proc[cols]
+        # Normalize school Data
+        for year, school_df in self.school_rating_dict.items():
+            if school_df is not None:
+                year_archive = max(2019, year)
+                self.school_rating_dict[year] = self.dn.normalize_school(school_df, self.school_archived_dir[year_archive])
+
+        self.school_ratings_proc = self.dn.flatten_dataframes(self.school_rating_dict)
+        #cols = list(self.school_ratings_proc.columns)
+        #cols[0], cols[1] = cols[1], cols[0] # swap columns for view purposes
+
+        #self.school_ratings_proc = self.school_ratings_proc[cols]
+
+        # self.school_ratings_proc = self.dn.normalize_school(self.school_ratings_proc, self.school_directory)
+
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)
 
         return self

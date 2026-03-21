@@ -22,6 +22,19 @@ def change_table_columns(dataframe):
     # return the new dataframe with modified columns
     return dataframe
 
+def fill_yearly_data():
+    return
+
+def normalize_school(school_df: pd.DataFrame, school_dir: pd.DataFrame):
+    """
+    Normalize school data by adding zip codes and removing unnecessary columns.
+    """
+    school_df = pd.merge(school_df, school_dir,on='campus_id',how='left')
+    school_df = school_df[['zipcode','score','campus_id','campus']]
+    school_df = school_df[school_df['score'] != '.']
+    school_df['zipcode'] =  school_df['zipcode'].str[:5]
+
+    return school_df
 
 def build_merged_df(
     zhvi: pd.DataFrame,             # (zipcode, year, month, zhvi)
