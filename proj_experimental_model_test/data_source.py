@@ -252,6 +252,7 @@ def get_mortgage_rates():
     else:
         mortgage_df = pull_mortgage_rates()
 
+    mortgage_df = mortgage_df.iloc[:-1] # Remove last row (its a disclaimer sentence)
     mortgage_df.columns = ['Week','US30yrFRM','30yerFeesPoints','US15yrFRM','15yrFeesPoints','5/1ARM','5/1ARM_feesPoints','5/1ARM_margin','30yrFRM/5/1ARM_spread']
     return mortgage_df
 

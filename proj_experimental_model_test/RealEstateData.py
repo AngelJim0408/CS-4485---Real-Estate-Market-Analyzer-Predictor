@@ -45,6 +45,12 @@ class RealEstateDataClass:
         self.zipcodes_lookup = None
 
         # Processed data
+        self.sales_proc = None
+        self.rent_proc = None
+        self.listings_proc = None
+        self.inventory_proc = None
+        self.mortgage_rates_proc = None
+        self.unemployment_rates_proc = None
         self.median_income_proc = None
         self.school_ratings_proc = None
         self.crime_violent_proc = None
@@ -108,6 +114,13 @@ class RealEstateDataClass:
         agency_zipcodes = pd.merge(self.zipcode_city_lookup, self.agency_city_lookup, how="left", on='city')
         agency_zipcodes = agency_zipcodes[['zipcode','agency']]
 
+        # Normalize already combined data
+        self.sales_proc = None
+        self.rent_proc = None
+        self.listings_proc = None
+        self.inventory_proc = None
+        self.mortgage_rates_proc = self.dn.normalize_mortgage(self.mortgage_rates_df)
+        self.unemployment_rates_proc = self.unemployment_rates_df # already in usable form: year,month,unemployment_rate
         # Normalize separated year data ( median income, school, crime)
         for year in range(self.year_start, self.data_yr):
 
@@ -130,6 +143,7 @@ class RealEstateDataClass:
         swap_cols(self.crime_property_proc,'offenses_per_100k','year')
 
         # write processed to data_proc
+        self.mortgage_rates_proc.to_csv(main_folder / "data_proc/mortgage_rates_processed.csv",index=False)
         self.median_income_proc.to_csv(main_folder / "data_proc/median_income_processed.csv",index=False)
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)
         self.crime_violent_proc.to_csv(main_folder / "data_proc/crime_violent_processed.csv",index=False)

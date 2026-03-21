@@ -1,6 +1,25 @@
 import pandas as pd
 
 # Normalization funcs
+def normalize_mortgage(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalize mortgage rates by removing unecessary columns, resampling weekly data to monthly, and separating date into month and year.
+    """
+    df = df.copy()
+    df = df.rename(columns={"Week": "date", "US30yrFRM": "mortgage_rate"})
+    df["date"] = pd.to_datetime(df["date"])
+
+    df = df[["date", "mortgage_rate"]] # These are only columns we need
+    df = df.dropna(subset=["mortgage_rate"])
+
+    # Resamples data (group by month from month start ('MS'), then combines into mean of the month group)
+    # reset index at end to be used as column again
+    df = (df.set_index("date")["mortgage_rate"].resample("MS").mean().reset_index())
+    df["year"]  = df["date"].dt.year
+    df["month"] = df["date"].dt.month
+
+    return df[['year','month','mortgage_rate']] # only values we want.
+
 def normalize_income(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df['median_income'] != -666666666]
     df.rename(columns={'ZCTA':'zipcode'}, inplace=True)
@@ -88,8 +107,8 @@ def build_merged_df(
     rent: pd.DataFrame,             # (zipcode, year, month, rent)
     listings: pd.DataFrame,         # (year, month, listings)
     inventory: pd.DataFrame,        # (year, month, inventory)
-    mortgage: pd.DataFrame,         # (year, month, mortgage_rate)
-    unemployment: pd.DataFrame,     # (year, month, unemployment_rate)
+    mortgage: pd.DataFrame,         # *(year, month, mortgage_rate)
+    unemployment: pd.DataFrame,     # *(year, month, unemployment_rate)
     income: pd.DataFrame,           # *(zipcode, year, month, median_income) !(yearly data)
     school: pd.DataFrame,           # *(zipcode, year, month, school_rating) !(yearly data)
     crime_violent: pd.DataFrame,    # *(zipcode, year, month, crime_violent) 
