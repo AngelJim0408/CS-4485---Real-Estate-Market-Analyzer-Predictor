@@ -1,32 +1,13 @@
 import pandas as pd
 
-def flatten_dataframes(data_dict: dict) -> pd.DataFrame:
-    """
-    Combines dataframe in a dictionary where the keys are years
-    Returns: full combined dataframe with year as new column.
-    """
-    new_frames = []
-    for year, dataframe in data_dict.items():
-        if dataframe is not None:
-            dataframe['year'] = year
-            new_frames.append(dataframe)
-
-    return pd.concat(new_frames, ignore_index=True)
-
-def change_table_columns(dataframe):
-    # get the dataframe
-    # get columns corresponding to date,
-    # create new columns for month and year, and value
-
-    # assign ordingly
-    # return the new dataframe with modified columns
-    return dataframe
-
-def fill_yearly_data():
-    return
-
 # Normalization funcs
-def normalize_school(school_df: pd.DataFrame, school_dir: pd.DataFrame):
+def normalize_income(df: pd.DataFrame) -> pd.DataFrame:
+    df = df[df['median_income'] != -666666666]
+    df.rename(columns={'ZCTA':'zipcode'}, inplace=True)
+
+    return df
+
+def normalize_school(school_df: pd.DataFrame, school_dir: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize school data by adding zip codes and removing unnecessary columns.
     """
@@ -38,7 +19,7 @@ def normalize_school(school_df: pd.DataFrame, school_dir: pd.DataFrame):
 
     return school_df
 
-def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame):
+def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize crime data by getting agency_city table, and zipcode city table. 
     Then assign agency to zipcode in order
@@ -75,6 +56,32 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame):
 
     return df
 
+def flatten_dataframes(data_dict: dict) -> pd.DataFrame:
+    """
+    Combines dataframe in a dictionary where the keys are years
+    Returns: full combined dataframe with year as new column.
+    """
+    new_frames = []
+    for year, dataframe in data_dict.items():
+        if dataframe is not None:
+            dataframe['year'] = year
+            new_frames.append(dataframe)
+
+    return pd.concat(new_frames, ignore_index=True)
+
+def change_table_columns(dataframe):
+    # get the dataframe
+    # get columns corresponding to date,
+    # create new columns for month and year, and value
+
+    # assign ordingly
+    # return the new dataframe with modified columns
+    return dataframe
+
+def fill_yearly_data():
+    return
+
+
 def build_merged_df(
     zhvi: pd.DataFrame,             # (zipcode, year, month, zhvi)
     sales: pd.DataFrame,            # (year, month, sales_count)
@@ -83,8 +90,8 @@ def build_merged_df(
     inventory: pd.DataFrame,        # (year, month, inventory)
     mortgage: pd.DataFrame,         # (year, month, mortgage_rate)
     unemployment: pd.DataFrame,     # (year, month, unemployment_rate)
-    income: pd.DataFrame,           # (zipcode, year, month, median_income)  — already ffilled to monthly
-    school: pd.DataFrame,           # *(zipcode, year, month, school_rating) 
+    income: pd.DataFrame,           # *(zipcode, year, month, median_income) !(yearly data)
+    school: pd.DataFrame,           # *(zipcode, year, month, school_rating) !(yearly data)
     crime_violent: pd.DataFrame,    # *(zipcode, year, month, crime_violent) 
     crime_property: pd.DataFrame,   # *(zipcode, year, month, crime_property)
 ) -> pd.DataFrame:

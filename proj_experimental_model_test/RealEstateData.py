@@ -1,6 +1,15 @@
 import pandas as pd
 from datetime import date
 
+# Helper Functions (local to this program)
+def swap_cols(df: pd.DataFrame, col1_n: str, col2_n: str):
+    cols = list(df)
+    col1 = df.columns.get_loc(col1_n)
+    col2 = df.columns.get_loc(col2_n)
+    cols[col1], cols[col2] = cols[col2], cols[col1]
+
+    return df[cols]
+
 class RealEstateDataClass:
     def __init__(self, data_source, data_normalize, year_earliest):
         self.ds = data_source
@@ -36,6 +45,7 @@ class RealEstateDataClass:
         self.zipcodes_lookup = None
 
         # Processed data
+        self.median_income_proc = None
         self.school_ratings_proc = None
         self.crime_violent_proc = None
         self.crime_property_proc = None
@@ -98,8 +108,11 @@ class RealEstateDataClass:
         agency_zipcodes = pd.merge(self.zipcode_city_lookup, self.agency_city_lookup, how="left", on='city')
         agency_zipcodes = agency_zipcodes[['zipcode','agency']]
 
-        # Normalize separated year data ( school, crime, ...)
+        # Normalize separated year data ( median income, school, crime)
         for year in range(self.year_start, self.data_yr):
+
+            self.median_income_dict[year] = self.dn.normalize_income(self.median_income_dict[year])
+
             if self.school_rating_dict[year] is not None:
                 year_archive = max(2019, year)
                 self.school_rating_dict[year] = self.dn.normalize_school(self.school_rating_dict[year], self.school_archived_dir[year_archive])
@@ -107,25 +120,17 @@ class RealEstateDataClass:
             self.crime_violent_dict[year] = self.dn.normalize_crime(self.crime_violent_dict[year], agency_zipcodes)
             self.crime_property_dict[year] = self.dn.normalize_crime(self.crime_property_dict[year], agency_zipcodes)
 
-
+        self.median_income_proc = self.dn.flatten_dataframes(self.median_income_dict)
         self.school_ratings_proc = self.dn.flatten_dataframes(self.school_rating_dict)
-
-        cols = list(self.school_ratings_proc.columns)
-        cols[1], cols[4] = cols[4], cols[1] # swap columns for view purposes (swap score w/ year)
-        self.school_ratings_proc = self.school_ratings_proc[cols]
-
-        # flatten: crime
         self.crime_violent_proc = self.dn.flatten_dataframes(self.crime_violent_dict)
         self.crime_property_proc = self.dn.flatten_dataframes(self.crime_property_dict)
 
-        cols_crime_v = list(self.crime_violent_proc.columns)
-        cols_crime_p = list(self.crime_property_proc.columns)
-        cols_crime_v[3], cols_crime_v[6] = cols_crime_v[6], cols_crime_v[3] 
-        cols_crime_p[3], cols_crime_p[6] = cols_crime_p[6], cols_crime_p[3] 
-        self.crime_violent_proc = self.crime_violent_proc[cols_crime_v]
-        self.crime_property_proc = self.crime_property_proc[cols_crime_p]
+        swap_cols(self.school_ratings_proc, 'score','year')
+        swap_cols(self.crime_violent_proc,'offenses_per_100k','year')
+        swap_cols(self.crime_property_proc,'offenses_per_100k','year')
 
         # write processed to data_proc
+        self.median_income_proc.to_csv(main_folder / "data_proc/median_income_processed.csv",index=False)
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)
         self.crime_violent_proc.to_csv(main_folder / "data_proc/crime_violent_processed.csv",index=False)
         self.crime_property_proc.to_csv(main_folder / "data_proc/crime_property_processed.csv",index=False)
