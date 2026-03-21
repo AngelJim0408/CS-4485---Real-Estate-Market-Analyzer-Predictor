@@ -83,6 +83,12 @@ def get_campus_zip_data(year=None):
     campus_zip_df.rename(columns={'School Number' : 'campus_id','School Name' : 'campus', 'School Zip' : 'zipcode'}, inplace=True)
     
     return campus_zip_df
+
+def get_lookup_table(filename):
+    target_path = main_path / f"data_raw/tables/{filename}"
+
+    look_up_df = pd.read_csv(target_path)
+    return look_up_df
 # -------------
 
 # 1. PRICE MOMENTUM DATA PULLING/GETTING

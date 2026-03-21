@@ -31,8 +31,14 @@ class RealEstateDataClass:
         self.school_directory = None
         self.school_archived_dir = {}
 
+        self.agency_city_lookup = None
+        self.zipcode_city_lookup = None
+        self.zipcodes_lookup = None
+
         # Processed data
         self.school_ratings_proc = None
+        self.crime_violent_proc = None
+        self.crime_property_proc = None
 
     def load_data(self):
         
@@ -80,26 +86,40 @@ class RealEstateDataClass:
         # Access Other Data Tables
         self.school_directory = self.ds.get_campus_zip_data()
 
+        self.agency_city_lookup = self.ds.get_lookup_table("agency_city.csv")
+        self.zipcode_city_lookup = self.ds.get_lookup_table("zipcode_city.csv")
+        self.zipcodes_lookup = self.ds.get_lookup_table("zipcodes.csv")
+
         return self
 
     def process_data(self, main_folder):
         ## Process school ratings, combine into single dataframe, keep keys consistent.
+        
+        agency_zipcodes = pd.merge(self.zipcode_city_lookup, self.agency_city_lookup, how="left", on='city')
+        agency_zipcodes = agency_zipcodes[['zipcode','agency']]
 
-        # Normalize school Data
-        for year, school_df in self.school_rating_dict.items():
-            if school_df is not None:
+        # Normalize separated year data ( school, crime, ...)
+        for year in range(self.year_start, self.data_yr):
+            if self.school_rating_dict[year] is not None:
                 year_archive = max(2019, year)
-                self.school_rating_dict[year] = self.dn.normalize_school(school_df, self.school_archived_dir[year_archive])
+                self.school_rating_dict[year] = self.dn.normalize_school(self.school_rating_dict[year], self.school_archived_dir[year_archive])
+
+            self.crime_violent_dict[year] = self.dn.normalize_crime(self.crime_violent_dict[year], agency_zipcodes)
+            self.crime_property_dict[year] = self.dn.normalize_crime(self.crime_property_dict[year], agency_zipcodes)
+
 
         self.school_ratings_proc = self.dn.flatten_dataframes(self.school_rating_dict)
-        #cols = list(self.school_ratings_proc.columns)
-        #cols[0], cols[1] = cols[1], cols[0] # swap columns for view purposes
 
-        #self.school_ratings_proc = self.school_ratings_proc[cols]
+        cols = list(self.school_ratings_proc.columns)
+        cols[1], cols[4] = cols[4], cols[1] # swap columns for view purposes (swap score w/ year)
+        self.school_ratings_proc = self.school_ratings_proc[cols]
 
-        # self.school_ratings_proc = self.dn.normalize_school(self.school_ratings_proc, self.school_directory)
+        self.crime_violent_proc = self.dn.flatten_dataframes(self.crime_violent_dict)
+        self.crime_property_proc = self.dn.flatten_dataframes(self.crime_property_dict)
 
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)
+        self.crime_violent_proc.to_csv(main_folder / "data_proc/crime_violent_processed.csv",index=False)
+        self.crime_property_proc.to_csv(main_folder / "data_proc/crime_property_processed.csv",index=False)
 
         return self
     
