@@ -45,6 +45,7 @@ class RealEstateDataClass:
         self.zipcodes_lookup = None
 
         # Processed data
+        self.zhvi_proc = None
         self.sales_proc = None
         self.rent_proc = None
         self.listings_proc = None
@@ -115,10 +116,12 @@ class RealEstateDataClass:
         agency_zipcodes = agency_zipcodes[['zipcode','agency']]
 
         # Normalize already combined data
-        self.sales_proc = None
-        self.rent_proc = None
-        self.listings_proc = None
-        self.inventory_proc = None
+        self.zhvi_proc = self.dn.normalize_zillow_data(self.zhvi_df,'zhvi')
+        self.sales_proc = self.dn.normalize_zillow_data(self.sales_df,'sales_count')
+        self.rent_proc = self.dn.normalize_zillow_data(self.rent_df,'rent')
+        self.listings_proc = self.dn.normalize_zillow_data(self.listings_df,'new_listings')
+        self.inventory_proc = self.dn.normalize_zillow_data(self.inventory_df,'inventory')
+
         self.mortgage_rates_proc = self.dn.normalize_mortgage(self.mortgage_rates_df)
         self.unemployment_rates_proc = self.unemployment_rates_df # already in usable form: year,month,unemployment_rate
         # Normalize separated year data ( median income, school, crime)
@@ -143,6 +146,12 @@ class RealEstateDataClass:
         swap_cols(self.crime_property_proc,'offenses_per_100k','year')
 
         # write processed to data_proc
+        self.zhvi_proc.to_csv(main_folder / "data_proc/zhvi_processed.csv",index=False)
+        self.sales_proc.to_csv(main_folder / "data_proc/sales_processed.csv",index=False)
+        self.rent_proc.to_csv(main_folder / "data_proc/rent_processed.csv",index=False)
+        self.listings_proc.to_csv(main_folder / "data_proc/listings_processed.csv",index=False)
+        self.inventory_proc.to_csv(main_folder / "data_proc/inventory_processed.csv",index=False)
+        
         self.mortgage_rates_proc.to_csv(main_folder / "data_proc/mortgage_rates_processed.csv",index=False)
         self.median_income_proc.to_csv(main_folder / "data_proc/median_income_processed.csv",index=False)
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)

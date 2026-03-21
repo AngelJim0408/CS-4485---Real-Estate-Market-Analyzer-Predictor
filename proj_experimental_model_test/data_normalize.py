@@ -1,6 +1,19 @@
 import pandas as pd
 
 # Normalization funcs
+def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
+    df = df.copy()
+    key_col = df.columns[0]
+    df = df.melt(id_vars=[key_col], var_name='date',value_name=value_str)
+    df["date"] = pd.to_datetime(df["date"])
+
+    df = (df.set_index("date").groupby(key_col)[value_str].resample("MS").mean().reset_index())
+    df["year"]  = df["date"].dt.year
+    df["month"] = df["date"].dt.month
+    #df = df.dropna(subset=[value_str])
+
+    return df[[key_col,'year','month',value_str]]
+
 def normalize_mortgage(df: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize mortgage rates by removing unecessary columns, resampling weekly data to monthly, and separating date into month and year.

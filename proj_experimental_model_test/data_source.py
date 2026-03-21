@@ -108,6 +108,7 @@ def get_zhvi_data():
         zhvi_df = pull_zhvi_data()
     # zhvi has all zipcodes, we clean to get just the ones in dallas county.
     dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"].copy()
+    dallas_zhvi_df = dallas_zhvi_df[dallas_zhvi_df["StateName"] == "TX"]
 
     dallas_zhvi_df.drop(columns=['RegionID','SizeRank','RegionType','StateName','State','City','Metro','CountyName'], inplace=True)
     dallas_zhvi_df.rename(columns={'RegionName' : 'zipcode'}, inplace=True)
@@ -165,8 +166,9 @@ def get_zillow_supply(type):
                 zillow_supplydemand_df = pull_zillow_inv()
             case _:
                 return None
-    # zhvi has all zipcodes, we clean to get just the ones in dallas county.
-    #dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"]
+            
+    zillow_supplydemand_df = zillow_supplydemand_df[zillow_supplydemand_df["StateName"] == "TX"]
+
     if 'CountyName' in zillow_supplydemand_df.columns:
         zillow_supplydemand_df = zillow_supplydemand_df[zillow_supplydemand_df["CountyName"] == "Dallas County"].copy()
 
