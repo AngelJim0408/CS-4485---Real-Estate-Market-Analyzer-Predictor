@@ -2,9 +2,10 @@ import pandas as pd
 from datetime import date
 
 class RealEstateDataClass:
-    def __init__(self, data_source, data_normalize, year_earliest):
+    def __init__(self, data_source, data_normalize, data_engineering, year_earliest):
         self.ds = data_source
         self.dn = data_normalize
+        self.de = data_engineering
 
         self.data_yr = date.today().year - 1 
         self.year_start = year_earliest
@@ -176,6 +177,7 @@ class RealEstateDataClass:
         self.crime_property_proc = pd.read_csv(main_folder / "data_proc/crime_property_processed.csv")
 
         return self
+    
     def save_main_df(self, main_folder):
         if self.master_df is not None:
             self.master_df.to_csv(main_folder / "data_proc/MASTER.csv",index=False)
@@ -184,23 +186,20 @@ class RealEstateDataClass:
     
     def build_features(self, main_folder):
         print("Merging processed dataframes.")
-        self.master_df = self.dn.build_merged_df(
-            self.zhvi_proc,
-            self.sales_proc,
-            self.rent_proc,
-            self.listings_proc,
-            self.inventory_proc,
-            
-            self.mortgage_rates_proc,
-            self.unemployment_rates_proc,
-            self.median_income_proc,
-            self.school_ratings_proc,
-            self.crime_violent_proc,
-            self.crime_property_proc
+        self.master_df = self.dn.build_merged_df(self.zhvi_proc,self.sales_proc,self.rent_proc,self.listings_proc,self.inventory_proc,
+            self.mortgage_rates_proc,self.unemployment_rates_proc,self.median_income_proc,self.school_ratings_proc,
+            self.crime_violent_proc,self.crime_property_proc
         )
+
+        # ! drop rent column for now (too much nan values [>40%!!!])
+        self.master_df = self.master_df.drop(columns=['rent'])
+        self.dn.print_merged_log(self.master_df)
+
         self.save_main_df(main_folder)
-        
+
         # TODO: Build feature vectors for model training.
+        self.master_df = self.de.create_feature_vectors(self.master_df)
+        #self.dn.print_merged_log(self.master_df)
         return self
     
     def desc(self):
@@ -212,20 +211,11 @@ class RealEstateDataClass:
                 print(f"{name:20s}  dict with {len(obj)} keys: {list(obj.keys())[:5]}")
 
 
-## Agencies (TX/Dallas County) (left for reference)
+## Agencies (TX/Dallas County) (left here for reference)
 """
 if Path(path_crime_data_raw / f"fbi_data/fbi_agencies.csv").exists():
     crime_agencies = pd.read_csv(path_crime_data_raw / f"fbi_data/fbi_agencies.csv")
 else:
     crime_agencies = ds.pull_fbi_agencies("TX")
 
-"""
-
-
-"""
-## Hardcode to test is dallas_crime_raw csv exists
-if Path(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv").exists():
-    crime_df_dallas = pd.read_csv(path_crime_data_raw / f"dallas_crime_raw_{data_yr}.csv")
-else:
-    crime_df_dallas = ds.pull_dallas_crime(data_yr)
 """

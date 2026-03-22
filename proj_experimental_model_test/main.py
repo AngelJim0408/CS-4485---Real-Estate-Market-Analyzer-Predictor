@@ -1,13 +1,15 @@
 import sys
+
 import data_source as ds
 import data_normalize as dn
+import data_engineering as de
 
 from pathlib import Path
 from RealEstateData import RealEstateDataClass
 
 if __name__ == "__main__":
     user_input = 0
-    data_class = RealEstateDataClass(ds, dn, 2018)
+    data_class = RealEstateDataClass(ds, dn, de, 2018)
     current_file_path = Path(__file__).resolve()
     main_path = current_file_path.parent
     

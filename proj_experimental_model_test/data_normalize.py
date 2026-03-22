@@ -114,6 +114,19 @@ def change_table_columns(dataframe):
     # return the new dataframe with modified columns
     return dataframe
 
+def print_merged_log(df: pd.DataFrame):
+    print(f"Merged shape: {df.shape}")
+    print(f"Zipcodes:     {df['zipcode'].nunique()}")
+    print(f"Date range:   {df['year'].min()}-{df['month'].min():02d} → "
+          f"{df['year'].max()}-{df['month'].max():02d}")
+    print(f"Columns:\n{df.columns.tolist()}")
+    print("_______________________________________________")
+    print("_______________________________________________")
+    print("Nan Percentages")
+    print("__________________________________________")
+    null_pct = (df.isnull().sum() / len(df) * 100).sort_values(ascending=False)
+    print(null_pct[null_pct > 0])
+
 def build_merged_df( # if zipcode not column, means data for whole county
     zhvi: pd.DataFrame,             # (zipcode,year,month,zhvi)
     sales: pd.DataFrame,            # (year,month,sales_count) <- across whole county
@@ -159,7 +172,7 @@ def build_merged_df( # if zipcode not column, means data for whole county
         new_df = df.groupby(['zipcode','year','month']).agg(
                     offenses=('offenses','sum'),clearances=('clearances','sum'),offenses_per_100k=('offenses_per_100k','sum')
                 ).reset_index()
-        new_df = new_df.rename(columns={'offenses':f'{val_str}_offenses', 'clearances' : f'{val_str}_clearances', 'offenses_per_100k' : f'{val_str}offenses_per_100k'})
+        new_df = new_df.rename(columns={'offenses':f'{val_str}_offenses', 'clearances' : f'{val_str}_clearances', 'offenses_per_100k' : f'{val_str}_offenses_per_100k'})
         return new_df
     
     violent_crime_agg = aggregate_crime(crime_violent, 'violent')
@@ -173,17 +186,5 @@ def build_merged_df( # if zipcode not column, means data for whole county
     cols_to_fill = ['median_income','total_population','school_rating_mean','school_rating_max','school_count']
 
     main_df[cols_to_fill] = main_df.groupby('zipcode')[cols_to_fill].ffill()
-
-    print(f"main_df shape: {main_df.shape}")
-    print(f"Zipcodes:     {main_df['zipcode'].nunique()}")
-    print(f"Date range:   {main_df['year'].min()}-{main_df['month'].min():02d} → "
-          f"{main_df['year'].max()}-{main_df['month'].max():02d}")
-    print(f"Columns:\n{main_df.columns.tolist()}")
-    print("_______________________________________________")
-    print("_______________________________________________")
-    print("Nan Percentages")
-    print("__________________________________________")
-    null_pct = (main_df.isnull().sum() / len(main_df) * 100).sort_values(ascending=False)
-    print(null_pct[null_pct > 0])
 
     return main_df
