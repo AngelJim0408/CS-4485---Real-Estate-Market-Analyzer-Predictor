@@ -1,15 +1,6 @@
 import pandas as pd
 from datetime import date
 
-# Helper Functions (local to this program)
-def swap_cols(df: pd.DataFrame, col1_n: str, col2_n: str):
-    cols = list(df)
-    col1 = df.columns.get_loc(col1_n)
-    col2 = df.columns.get_loc(col2_n)
-    cols[col1], cols[col2] = cols[col2], cols[col1]
-
-    return df[cols]
-
 class RealEstateDataClass:
     def __init__(self, data_source, data_normalize, year_earliest):
         self.ds = data_source
@@ -56,6 +47,9 @@ class RealEstateDataClass:
         self.school_ratings_proc = None
         self.crime_violent_proc = None
         self.crime_property_proc = None
+
+        # Master Dataframe (Fully combined from above)
+        self.master_df = None
 
     def load_data(self):
         
@@ -141,9 +135,11 @@ class RealEstateDataClass:
         self.crime_violent_proc = self.dn.flatten_dataframes(self.crime_violent_dict)
         self.crime_property_proc = self.dn.flatten_dataframes(self.crime_property_dict)
 
-        swap_cols(self.school_ratings_proc, 'score','year')
-        swap_cols(self.crime_violent_proc,'offenses_per_100k','year')
-        swap_cols(self.crime_property_proc,'offenses_per_100k','year')
+        # Reorder columns
+        self.median_income_proc = self.median_income_proc[['zipcode','year','median_income','total_population']]
+        self.school_ratings_proc = self.school_ratings_proc[['zipcode','campus_id','year','score']]
+        self.crime_violent_proc = self.crime_violent_proc[['zipcode','agency','year','month','offenses_per_100k','offenses','clearances']]
+        self.crime_property_proc = self.crime_property_proc[['zipcode','agency','year','month','offenses_per_100k','offenses','clearances']]
 
         # write processed to data_proc
         self.zhvi_proc.to_csv(main_folder / "data_proc/zhvi_processed.csv",index=False)
@@ -153,14 +149,57 @@ class RealEstateDataClass:
         self.inventory_proc.to_csv(main_folder / "data_proc/inventory_processed.csv",index=False)
         
         self.mortgage_rates_proc.to_csv(main_folder / "data_proc/mortgage_rates_processed.csv",index=False)
+        self.unemployment_rates_proc.to_csv(main_folder / "data_proc/unemployment_rates_processed.csv",index=False)
         self.median_income_proc.to_csv(main_folder / "data_proc/median_income_processed.csv",index=False)
         self.school_ratings_proc.to_csv(main_folder / "data_proc/school_ratings_processed.csv",index=False)
         self.crime_violent_proc.to_csv(main_folder / "data_proc/crime_violent_processed.csv",index=False)
         self.crime_property_proc.to_csv(main_folder / "data_proc/crime_property_processed.csv",index=False)
 
+        
         return self
     
-    def build_features(self):
+    def get_processed_data(self, main_folder):
+        """
+        Get processed data from files if already exists (for easy use.)
+        """
+        self.zhvi_proc = pd.read_csv(main_folder / "data_proc/zhvi_processed.csv")
+        self.sales_proc = pd.read_csv(main_folder / "data_proc/sales_processed.csv")
+        self.rent_proc = pd.read_csv(main_folder / "data_proc/rent_processed.csv")
+        self.listings_proc = pd.read_csv(main_folder / "data_proc/listings_processed.csv")
+        self.inventory_proc = pd.read_csv(main_folder / "data_proc/inventory_processed.csv")
+        
+        self.mortgage_rates_proc = pd.read_csv(main_folder / "data_proc/mortgage_rates_processed.csv")
+        self.unemployment_rates_proc = pd.read_csv(main_folder / "data_proc/unemployment_rates_processed.csv")
+        self.median_income_proc = pd.read_csv(main_folder / "data_proc/median_income_processed.csv")
+        self.school_ratings_proc = pd.read_csv(main_folder / "data_proc/school_ratings_processed.csv")
+        self.crime_violent_proc = pd.read_csv(main_folder / "data_proc/crime_violent_processed.csv")
+        self.crime_property_proc = pd.read_csv(main_folder / "data_proc/crime_property_processed.csv")
+
+        return self
+    def save_main_df(self, main_folder):
+        if self.master_df is not None:
+            self.master_df.to_csv(main_folder / "data_proc/MASTER.csv",index=False)
+
+        return self
+    
+    def build_features(self, main_folder):
+        print("Merging processed dataframes.")
+        self.master_df = self.dn.build_merged_df(
+            self.zhvi_proc,
+            self.sales_proc,
+            self.rent_proc,
+            self.listings_proc,
+            self.inventory_proc,
+            
+            self.mortgage_rates_proc,
+            self.unemployment_rates_proc,
+            self.median_income_proc,
+            self.school_ratings_proc,
+            self.crime_violent_proc,
+            self.crime_property_proc
+        )
+        self.save_main_df(main_folder)
+        
         # TODO: Build feature vectors for model training.
         return self
     

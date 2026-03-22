@@ -12,7 +12,10 @@ def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
     df["month"] = df["date"].dt.month
     #df = df.dropna(subset=[value_str])
 
-    return df[[key_col,'year','month',value_str]]
+    if key_col == 'zipcode':
+        return df[[key_col,'year','month',value_str]]
+    else:
+        return df[['year','month',value_str]]
 
 def normalize_mortgage(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -88,6 +91,7 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+# Flatten dataframes (combine dataframes if separated by year)
 def flatten_dataframes(data_dict: dict) -> pd.DataFrame:
     """
     Combines dataframe in a dictionary where the keys are years
@@ -110,32 +114,76 @@ def change_table_columns(dataframe):
     # return the new dataframe with modified columns
     return dataframe
 
-def fill_yearly_data():
-    return
+def build_merged_df( # if zipcode not column, means data for whole county
+    zhvi: pd.DataFrame,             # (zipcode,year,month,zhvi)
+    sales: pd.DataFrame,            # (year,month,sales_count) <- across whole county
+    rent: pd.DataFrame,             # (zipcode,year,month,rent)
+    listings: pd.DataFrame,         # (year,month,new_listings)
+    inventory: pd.DataFrame,        # (year,month,inventory)
 
-
-def build_merged_df(
-    zhvi: pd.DataFrame,             # (zipcode, year, month, zhvi)
-    sales: pd.DataFrame,            # (year, month, sales_count)
-    rent: pd.DataFrame,             # (zipcode, year, month, rent)
-    listings: pd.DataFrame,         # (year, month, listings)
-    inventory: pd.DataFrame,        # (year, month, inventory)
-    mortgage: pd.DataFrame,         # *(year, month, mortgage_rate)
-    unemployment: pd.DataFrame,     # *(year, month, unemployment_rate)
-    income: pd.DataFrame,           # *(zipcode, year, month, median_income) !(yearly data)
-    school: pd.DataFrame,           # *(zipcode, year, month, school_rating) !(yearly data)
-    crime_violent: pd.DataFrame,    # *(zipcode, year, month, crime_violent) 
-    crime_property: pd.DataFrame,   # *(zipcode, year, month, crime_property)
+    mortgage: pd.DataFrame,         # *(year,month,mortgage_rate)
+    unemployment: pd.DataFrame,     # *(year,month,unemployment_rate)
+    income: pd.DataFrame,           # *(zipcode,year,median_income,total_population !(yearly data)
+    school: pd.DataFrame,           # *(zipcode,campus_id,year,score) !(yearly data)
+    crime_violent: pd.DataFrame,    # *(zipcode,agency,year,month,offenses_per_100k,offenses,clearances) 
+    crime_property: pd.DataFrame,   # *(zipcode,agency,year,month,offenses_per_100k,offenses,clearances)
 ) -> pd.DataFrame:
     
     """
-    combine dataframes into one master dataframe.
+    parameters: PROCESSED DATAFRAME!
+    combine dataframes into one main_df dataframe.
     Needed to for feature engineering.
     """
     main_df = zhvi.copy()
 
-    # Join by zip code
+    # Join by month + zip
+    main_df = main_df.merge(rent, on=['zipcode','year','month'], how='left')
 
-    # Join by date (month / year)
+    # Join by month/year (county-lvl)
+    county_month_list = [sales, listings, inventory, unemployment, mortgage]
+    for df in county_month_list:
+        main_df = main_df.merge(df, on=['year','month'], how='left')
+
+    # Join by year + zip
+    main_df = main_df.merge(income, on=['zipcode','year'])
+
+    ## schools can have multiple per zip, aggregate the school campuses
+    school["score"] = pd.to_numeric(school["score"], errors="coerce")
+    school_grouped = school.groupby(["zipcode", "year"])["score"].agg(school_rating_mean="mean",school_rating_max="max",school_count="count").reset_index()
+    main_df = main_df.merge(school_grouped, on=['zipcode','year'], how='left')
+
+    ## crime data also needs aggregation with agencies + (differentiate between violent and property)
+    ## remember: agencies can be assoc w/ multiple zips
+    ## helper function for crime aggr
+    def aggregate_crime(df: pd.DataFrame, val_str: str):
+        new_df = df.groupby(['zipcode','year','month']).agg(
+                    offenses=('offenses','sum'),clearances=('clearances','sum'),offenses_per_100k=('offenses_per_100k','sum')
+                ).reset_index()
+        new_df = new_df.rename(columns={'offenses':f'{val_str}_offenses', 'clearances' : f'{val_str}_clearances', 'offenses_per_100k' : f'{val_str}offenses_per_100k'})
+        return new_df
+    
+    violent_crime_agg = aggregate_crime(crime_violent, 'violent')
+    property_crime_agg = aggregate_crime(crime_property, 'property')
+    
+    main_df = main_df.merge(violent_crime_agg, on=['zipcode','year','month'], how='left')
+    main_df = main_df.merge(property_crime_agg, on=['zipcode','year','month'], how='left')
+
+    # Need to forward fill for data that only show yearly results
+    main_df = main_df.sort_values(["zipcode", "year", "month"]).reset_index(drop=True) # sort by zipcode, then year, then month so we group these in order
+    cols_to_fill = ['median_income','total_population','school_rating_mean','school_rating_max','school_count']
+
+    main_df[cols_to_fill] = main_df.groupby('zipcode')[cols_to_fill].ffill()
+
+    print(f"main_df shape: {main_df.shape}")
+    print(f"Zipcodes:     {main_df['zipcode'].nunique()}")
+    print(f"Date range:   {main_df['year'].min()}-{main_df['month'].min():02d} → "
+          f"{main_df['year'].max()}-{main_df['month'].max():02d}")
+    print(f"Columns:\n{main_df.columns.tolist()}")
+    print("_______________________________________________")
+    print("_______________________________________________")
+    print("Nan Percentages")
+    print("__________________________________________")
+    null_pct = (main_df.isnull().sum() / len(main_df) * 100).sort_values(ascending=False)
+    print(null_pct[null_pct > 0])
 
     return main_df

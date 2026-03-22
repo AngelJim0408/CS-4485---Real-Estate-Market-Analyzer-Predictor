@@ -21,7 +21,8 @@ if __name__ == "__main__":
         "__________________________________________\n" \
         "1. Collect Data\n" \
         "2. Process Raw Data\n" \
-        "3. Get campus_zip data\n" \
+        "3. Collect Processed Data From Files\n" \
+        "4. Build Features for model\n" \
         "q. Quit Program. ")
 
         user_input = input("Enter the menu option number: ")
@@ -47,9 +48,11 @@ if __name__ == "__main__":
 
                 print("Data finished processing. Check data_proc folder.")
             case '3':
-                yr_input = input("Enter year(enter blank if most current): ")
-                df = ds.get_campus_zip_data(int(yr_input))
-                print(df.head())
+                print("Collecting processed data from data_proc folder.")
+                data_class.get_processed_data(main_path)
+                print("Processed Data Collected.")
+            case '4':
+                data_class.build_features(main_path)
             case 'q':
                 print("Quitting Program.")
 
