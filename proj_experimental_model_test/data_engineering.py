@@ -20,7 +20,9 @@ def create_feature_vectors(df: pd.DataFrame):
         """
         if 'zhvi' in group.columns:
             for lag_m in [1, 3, 6, 12]: # Memory from 1-12 months
-                    group[f'zhvi_lag{lag_m}m'] = group['zhvi'].shift(lag_m)
+                group[f'zhvi_lag{lag_m}m'] = group['zhvi'].shift(lag_m)
+            for period in [1, 3, 6]:
+                group[f'zhvi_pct_change_{period}m'] = group['zhvi'].pct_change(period) * 100
 
         if 'inventory' in group.columns:
             for lag_m in [1, 3, 6]: # Memory from 1-6 months
@@ -70,7 +72,6 @@ def create_feature_vectors(df: pd.DataFrame):
         mortgage_affordability  : affordability pressure on buyers (mortgage)           (mortgage_rate, zhvi : median_income)
         months_of_supply        : inventory signal, <3 months = seller's market         (inventory : sales_count)
         absorption_rate         : selling vs new listings introduced                    (sales_count : new_listings)
-        price_to_school_rating  : price based on school quality                         (zhvi : school_rating_mean)
         price_to_crime          : zhvi relation to total crime per 100k                 (zhvi : total_offenses_per_100k)
         price_to_violent        : zhvi relation to violent crime per 100k               (zhvi : violent_offenses_per_100k)
         price_to_property       : zhvi relation to property crime per 100k              (zhvi : property_offenses_per_100k)
@@ -101,10 +102,6 @@ def create_feature_vectors(df: pd.DataFrame):
         if all(c in group.columns for c in ['sales_count', 'new_listings']):
              group['absorption_rate'] = group['sales_count'] / group['new_listings'].replace(0, pd.NA)
 
-        # school quality to price relation
-        if 'school_rating_mean' in group.columns and zhvi is not None:
-             group['price_to_school_rating'] = zhvi / group['school_rating_mean'].replace(0, pd.NA)
-
         
         # crime ratio to price
         if all(c in group.columns for c in ['violent_offenses_per_100k', 'property_offenses_per_100k']) and zhvi is not None:
@@ -128,7 +125,12 @@ def create_feature_vectors(df: pd.DataFrame):
         # target vars (this is what we're predicting)
         group["target_zhvi_3m"]  = group["zhvi"].shift(-3)
         group["target_zhvi_6m"]  = group["zhvi"].shift(-6)
-        group["target_zhvi_12m"] = group["zhvi"].shift(-12)
+        #group["target_zhvi_12m"] = group["zhvi"].shift(-12)
+
+        # Might have to drop 12month percent change (not enough data for this)
+        group["target_zhvi_3m_pct"]  = group["zhvi"].pct_change(-3)  * 100
+        group["target_zhvi_6m_pct"]  = group["zhvi"].pct_change(-6)  * 100
+        #group["target_zhvi_12m_pct"] = group["zhvi"].pct_change(-12) * 100
 
         return group
     
@@ -141,14 +143,14 @@ def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int):
     IMPORTANT: split data based on a cut-off month-year date (we DONT want data from future leaking into training.)
     df: merged feature vector dataframe
     target_name: target column name we want to train for
-     - can be ... (target_zhvi_3m, target_zhvi_6m, or target_zhvi_12m)
+     - can be ... (target_zhvi_3m, target_zhvi_6m)
     cuttoff_yr: year to split for test split (cutoff_yr will be incl. in test split)
 
     returns -> x_train, x_test, y_train, y_test (values ready for model training via sklearn)
     """
     df = df.copy() # (just to make sure we don't mess up the original dataframe passed)
 
-    df.dropna(subset=[target_name])
+    df = df.dropna(subset=[target_name])
 
     unused_cols   = ['zipcode', 'year', 'month'] # not useful for training
     target_cols = [c for c in df.columns if c.startswith('target_')] # target is what we train for
@@ -158,7 +160,7 @@ def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int):
     features = [c for c in df.columns if c not in unused_cols + target_cols + raw_cols]
 
     x = df[features].dropna()
-    y = df.loc[x.index, target_cols] # ensure y has matching index to x
+    y = df.loc[x.index, target_name] # ensure y has matching index to x
 
     # need to split by TIME, use cutoff date/year
     train_mask = df.loc[x.index,'year'] < cutoff_yr # true for all rows where yr < cutoff

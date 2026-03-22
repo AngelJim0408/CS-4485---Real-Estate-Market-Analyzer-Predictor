@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import date
 
 class RealEstateDataClass:
-    def __init__(self, data_source, data_normalize, data_engineering, year_earliest, year_cutoff):
+    def __init__(self, data_source, data_normalize, data_engineering, year_earliest):
         self.ds = data_source
         self.dn = data_normalize
         self.de = data_engineering
@@ -10,7 +10,6 @@ class RealEstateDataClass:
         self.data_yr = date.today().year - 1 
         self.year_start = year_earliest
         self.year_end = self.data_yr - 2
-        self.cutoff_yr = year_cutoff
 
         # Raw Data
         self.zhvi_df = None
@@ -176,7 +175,7 @@ class RealEstateDataClass:
         self.school_ratings_proc = pd.read_csv(main_folder / "data_proc/school_ratings_processed.csv")
         self.crime_violent_proc = pd.read_csv(main_folder / "data_proc/crime_violent_processed.csv")
         self.crime_property_proc = pd.read_csv(main_folder / "data_proc/crime_property_processed.csv")
-
+        
         return self
     
     def save_main_df(self, main_folder):
@@ -205,14 +204,14 @@ class RealEstateDataClass:
 
         return self
     
-    def get_model_inputs(self, target_str: str='target_zhvi_3m'):
+    def get_model_inputs(self, target_str, cutoff):
         """
         Model ready data (training/test split)
-        target_str: target_zhvi_3m, target_zhvi_6m, target_zhvi_12m
+        target_str: target_zhvi_3m_pct, target_zhvi_6m+pct, target_zhvi_3m, target_zhvi_6m
         returns: x_train, x_test, y_train, y_test 
         """
         # Get training and test split (by cutoff year)
-        return self.de.get_train_test_split(self.master_df, target_str, 2023)
+        return self.de.get_train_test_split(self.master_df, target_str, cutoff)
     
     def desc(self):
         # Log to make sure dataframes are correct.
