@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import date
 
 class RealEstateDataClass:
-    def __init__(self, data_source, data_normalize, data_engineering, year_earliest):
+    def __init__(self, data_source, data_normalize, data_engineering, year_earliest, year_cutoff):
         self.ds = data_source
         self.dn = data_normalize
         self.de = data_engineering
@@ -10,6 +10,7 @@ class RealEstateDataClass:
         self.data_yr = date.today().year - 1 
         self.year_start = year_earliest
         self.year_end = self.data_yr - 2
+        self.cutoff_yr = year_cutoff
 
         # Raw Data
         self.zhvi_df = None
@@ -197,10 +198,21 @@ class RealEstateDataClass:
 
         self.save_main_df(main_folder)
 
-        # TODO: Build feature vectors for model training.
+        #Build feature vectors for model training.
         self.master_df = self.de.create_feature_vectors(self.master_df)
         #self.dn.print_merged_log(self.master_df)
+
+
         return self
+    
+    def get_model_inputs(self, target_str: str='target_zhvi_3m'):
+        """
+        Model ready data (training/test split)
+        target_str: target_zhvi_3m, target_zhvi_6m, target_zhvi_12m
+        returns: x_train, x_test, y_train, y_test 
+        """
+        # Get training and test split (by cutoff year)
+        return self.de.get_train_test_split(self.master_df, target_str, 2023)
     
     def desc(self):
         # Log to make sure dataframes are correct.

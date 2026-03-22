@@ -9,7 +9,7 @@ from RealEstateData import RealEstateDataClass
 
 if __name__ == "__main__":
     user_input = 0
-    data_class = RealEstateDataClass(ds, dn, de, 2018)
+    data_class = RealEstateDataClass(ds, dn, de, 2018, 2023)
     current_file_path = Path(__file__).resolve()
     main_path = current_file_path.parent
     
