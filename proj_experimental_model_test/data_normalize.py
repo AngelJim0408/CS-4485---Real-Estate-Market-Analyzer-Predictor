@@ -17,16 +17,18 @@ def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
     else:
         return df[['year','month',value_str]]
 
-def normalize_redfin_data(df: pd.DataFrame, zipcodes: pd.DataFrame) -> pd.DataFrame:
+def normalize_redfin_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    # zipcode need to be converted (remove 'Zip Code:' from each zipcode row.)
-    # ex) (Zip Code: 75044) -> (75044)
-    df['zipcode'] = df['zipcode'].str[:5]
+    # Deal with dates, turn dates into year, month
+    # Input format
+    ## Date: year-month-day
+    df["date"] = pd.to_datetime(df["date"])
+    df["year"] = df["date"].dt.year
+    df["month"] = df["date"].dt.month
 
-    # Only keep Zipcode from dallas county
-    
+    df.reset_index(drop=True, inplace=True)
 
-    return
+    return df[['zipcode','year','month','sales_count','new_listings','inventory']]
 
 def normalize_mortgage(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -143,7 +145,8 @@ def build_merged_df( # if zipcode not column, means data for whole county
     sales: pd.DataFrame,            # (year,month,sales_count) <- across whole county
     rent: pd.DataFrame,             # (zipcode,year,month,rent)
     listings: pd.DataFrame,         # (year,month,new_listings)
-    inventory: pd.DataFrame,        # (year,month,inventory)
+    inventory: pd.DataFrame,        # (year,month,inventory),
+    redfin_alt: pd.DataFrame,       # (zipcode,year,month,sales_count,new_listings,inventory) <- has zip info, use this first!!!
 
     mortgage: pd.DataFrame,         # *(year,month,mortgage_rate)
     unemployment: pd.DataFrame,     # *(year,month,unemployment_rate)
@@ -163,10 +166,14 @@ def build_merged_df( # if zipcode not column, means data for whole county
     # Join by month + zip
     main_df = main_df.merge(rent, on=['zipcode','year','month'], how='left')
 
-    # Join by month/year (county-lvl)
-    county_month_list = [sales, listings, inventory, unemployment, mortgage]
+    # merge redfin sales_count,new_listings,inventory
+    main_df = main_df.merge(redfin_alt, on=['zipcode','year','month'], how='left')
+
+    # Join by month/year (county-lvl) ignore sales, listings, inventory for now (already in redfin zip)
+    county_month_list = [unemployment, mortgage]
     for df in county_month_list:
         main_df = main_df.merge(df, on=['year','month'], how='left')
+
 
     # Join by year + zip
     main_df = main_df.merge(income, on=['zipcode','year'])

@@ -154,7 +154,7 @@ def pull_zillow_inv():
 
     return pd.read_csv(target_path)
 
-def pull_redfin_zip(cols):
+def pull_redfin_zip(cols, dmap):
     """
     read from redfin website for supply/demand info
     WARNING: LARGE FILE SIZE
@@ -163,7 +163,7 @@ def pull_redfin_zip(cols):
     url = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/zip_code_market_tracker.tsv000.gz"
     writeWebToLocal(url, target_path, True)
 
-    return pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols)
+    return pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols, dtype=dmap,chunksize=200_000, low_memory=True)
 
 def get_zillow_supply(type):
     """
@@ -201,7 +201,7 @@ def get_zillow_supply(type):
 
     return zillow_supplydemand_df
 
-def get_redfin():
+def get_redfin(zipcodes):
     target_path = main_path / f"data_raw/supply_demand/zip_code_market_tracker.tsv000.gz"
     cols_to_use = [
         "PERIOD_BEGIN",
@@ -214,6 +214,15 @@ def get_redfin():
         "NEW_LISTINGS",     # = new_listings (zillow)
         "INVENTORY",        # = inventory (zillow)
     ]
+    dtype_map = {
+        "REGION": "string",
+        "STATE_CODE": "string",
+        "REGION_TYPE": "string",
+        "PROPERTY_TYPE": "string",
+        "HOMES_SOLD": "float32",
+        "NEW_LISTINGS": "float32",
+        "INVENTORY": "float32",
+    }
      # Additional info if needed, these extra info may be valuable
     """
         "MEDIAN_DOM",           # median days on market = how fast homes sell
@@ -225,13 +234,29 @@ def get_redfin():
         "MONTHS_OF_SUPPLY",     # already computing this 
     """
     if Path(target_path).exists():
-        redfin_df = pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols_to_use)
+        reader = pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols_to_use, dtype=dtype_map,
+                                chunksize=200_000, low_memory=True)
     else:
-        redfin_df = pull_redfin_zip(cols_to_use)
+        reader = pull_redfin_zip(cols_to_use, dtype_map)
+
+    if reader:
+        chunks = []
+        dallas_zips = set(zipcodes['zipcode'].astype(str))
+        for chunk in reader:
+            chunk = chunk[
+                (chunk['STATE_CODE'] == 'TX') &
+                (chunk['PROPERTY_TYPE'] == 'All Residential') &
+                (chunk['REGION_TYPE'] == 'zip code')
+            ]
+
+            chunk['REGION'] = chunk['REGION'].astype(str).str.extract(r'(\d{5})')[0] # zipcode remove label at front, keep nums
+            # Filter to Dallas County
+            chunk = chunk[chunk['REGION'].isin(dallas_zips)]
+            chunks.append(chunk)
+
+
+        redfin_df = pd.concat(chunks, ignore_index=True)
     
-    redfin_df = redfin_df[redfin_df['STATE_CODE'] == 'TX'].copy()
-    redfin_df = redfin_df[redfin_df['PROPERTY_TYPE'] == 'All Residential'].copy()
-    redfin_df = redfin_df[redfin_df['REGION_TYPE'] == 'zip code'].copy()
     
     redfin_df.drop(columns=['STATE_CODE','PROPERTY_TYPE','REGION_TYPE'], inplace=True)
     redfin_df.rename(columns={'PERIOD_BEGIN':'date', 'PERIOD_END':'date_end', 'REGION':'zipcode', 'HOMES_SOLD':'sales_count',

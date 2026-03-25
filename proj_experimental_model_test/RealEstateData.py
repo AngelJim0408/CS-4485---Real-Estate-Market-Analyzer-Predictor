@@ -18,6 +18,7 @@ class RealEstateDataClass:
         self.rent_df = None
         self.listings_df = None
         self.inventory_df = None
+        self.redfin_alt_supply = None
 
         self.mortgage_rates_df = None
         self.unemployment_rates_df = None
@@ -55,16 +56,23 @@ class RealEstateDataClass:
     def load_data(self):
         
         # Get data from data sources.
+        # Access Other Data Tables
+        self.school_directory = self.ds.get_campus_zip_data()
+
+        self.agency_city_lookup = self.ds.get_lookup_table("agency_city.csv")
+        self.zipcode_city_lookup = self.ds.get_lookup_table("zipcode_city.csv")
+        self.zipcodes_lookup = self.ds.get_lookup_table("zipcodes.csv")
 
         # 1.PRICE MOMENTUM
         ## Get ZHVI from Zillow
         self.zhvi_df = self.ds.get_zhvi_data() # Can calculate lag, growth, volatility from this data
 
-        # 2.SUPPLY AND DEMAND
+        # 2.SUPPLY AND DEMAND (WARNING: MANY DON'T HAVE DATA PRIOR TO 2018)
         self.sales_df = self.ds.get_zillow_supply('sales_count') # metro-lvl
         self.rent_df = self.ds.get_zillow_supply('rent') # zip-lvl
         self.listings_df = self.ds.get_zillow_supply('new_listings') # metro-lvl
         self.inventory_df = self.ds.get_zillow_supply('inventory') # metro-lvl
+        self.redfin_alt_supply = self.ds.get_redfin(self.zipcodes_lookup )
 
         # 3.ECONOMIC ENVIRONMENT
         self.mortgage_rates_df = self.ds.get_mortgage_rates() # Weekly level (based on country)
@@ -95,13 +103,6 @@ class RealEstateDataClass:
         ## Since all data already come with dates, we do not need to 'collect' months/quarters.
         ## If want to see what each dataframe as, print it (just print the head, since df can have too large values)
 
-        # Access Other Data Tables
-        self.school_directory = self.ds.get_campus_zip_data()
-
-        self.agency_city_lookup = self.ds.get_lookup_table("agency_city.csv")
-        self.zipcode_city_lookup = self.ds.get_lookup_table("zipcode_city.csv")
-        self.zipcodes_lookup = self.ds.get_lookup_table("zipcodes.csv")
-
         return self
 
     def process_data(self, main_folder):
@@ -116,6 +117,7 @@ class RealEstateDataClass:
         self.rent_proc = self.dn.normalize_zillow_data(self.rent_df,'rent')
         self.listings_proc = self.dn.normalize_zillow_data(self.listings_df,'new_listings')
         self.inventory_proc = self.dn.normalize_zillow_data(self.inventory_df,'inventory')
+        self.redfin_alt_proc = self.dn.normalize_redfin_data(self.redfin_alt_supply)
 
         self.mortgage_rates_proc = self.dn.normalize_mortgage(self.mortgage_rates_df)
         self.unemployment_rates_proc = self.unemployment_rates_df # already in usable form: year,month,unemployment_rate
@@ -148,6 +150,7 @@ class RealEstateDataClass:
         self.rent_proc.to_csv(main_folder / "data_proc/rent_processed.csv",index=False)
         self.listings_proc.to_csv(main_folder / "data_proc/listings_processed.csv",index=False)
         self.inventory_proc.to_csv(main_folder / "data_proc/inventory_processed.csv",index=False)
+        self.redfin_alt_proc.to_csv(main_folder / "data_proc/redfin_alt_processed.csv",index=False)
         
         self.mortgage_rates_proc.to_csv(main_folder / "data_proc/mortgage_rates_processed.csv",index=False)
         self.unemployment_rates_proc.to_csv(main_folder / "data_proc/unemployment_rates_processed.csv",index=False)
@@ -168,6 +171,7 @@ class RealEstateDataClass:
         self.rent_proc = pd.read_csv(main_folder / "data_proc/rent_processed.csv")
         self.listings_proc = pd.read_csv(main_folder / "data_proc/listings_processed.csv")
         self.inventory_proc = pd.read_csv(main_folder / "data_proc/inventory_processed.csv")
+        self.redfin_alt_proc = pd.read_csv(main_folder / "data_proc/redfin_alt_processed.csv")
         
         self.mortgage_rates_proc = pd.read_csv(main_folder / "data_proc/mortgage_rates_processed.csv")
         self.unemployment_rates_proc = pd.read_csv(main_folder / "data_proc/unemployment_rates_processed.csv")
@@ -186,7 +190,7 @@ class RealEstateDataClass:
     
     def build_features(self, main_folder):
         print("Merging processed dataframes.")
-        self.master_df = self.dn.build_merged_df(self.zhvi_proc,self.sales_proc,self.rent_proc,self.listings_proc,self.inventory_proc,
+        self.master_df = self.dn.build_merged_df(self.zhvi_proc,self.sales_proc,self.rent_proc,self.listings_proc,self.inventory_proc,self.redfin_alt_proc,
             self.mortgage_rates_proc,self.unemployment_rates_proc,self.median_income_proc,self.school_ratings_proc,
             self.crime_violent_proc,self.crime_property_proc
         )
