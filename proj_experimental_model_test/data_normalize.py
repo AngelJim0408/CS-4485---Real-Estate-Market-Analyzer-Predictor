@@ -24,7 +24,7 @@ def normalize_redfin_data(df: pd.DataFrame, zipcodes: pd.DataFrame) -> pd.DataFr
     df['zipcode'] = df['zipcode'].str[:5]
 
     # Only keep Zipcode from dallas county
-
+    
 
     return
 

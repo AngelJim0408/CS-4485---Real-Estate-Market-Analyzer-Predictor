@@ -140,10 +140,10 @@ def create_feature_vectors(df: pd.DataFrame):
 
 # split using time series split
 def get_time_split(df: pd.DataFrame, target_name: str, n_splits=3):
-    
+
     return
+
 # split using cutoff_yr
-"""
 def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int): # instead of specific cutoff_yr, maybe use time series split.
     
     #From merged feature vector dataframe, create a training a testing split for machine learning model.
@@ -184,4 +184,3 @@ def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int): # 
     print(f"Test:     {len(y_test):,} rows ({cutoff_yr} → {df.loc[x_test.index, 'year'].max()})")
 
     return x_train, x_test, y_train, y_test
-"""
