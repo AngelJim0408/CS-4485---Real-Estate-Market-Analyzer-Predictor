@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import TimeSeriesSplit
 
 def create_feature_vectors(df: pd.DataFrame):
     """
@@ -137,17 +138,23 @@ def create_feature_vectors(df: pd.DataFrame):
     df = df.groupby("zipcode", group_keys=False).apply(zip_modify)
     return df
 
-def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int):
-    """
-    From merged feature vector dataframe, create a training a testing split for machine learning model.
-    IMPORTANT: split data based on a cut-off month-year date (we DONT want data from future leaking into training.)
-    df: merged feature vector dataframe
-    target_name: target column name we want to train for
-     - can be ... (target_zhvi_3m, target_zhvi_6m)
-    cuttoff_yr: year to split for test split (cutoff_yr will be incl. in test split)
+# split using time series split
+def get_time_split(df: pd.DataFrame, target_name: str, n_splits=3):
+    
+    return
+# split using cutoff_yr
+"""
+def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int): # instead of specific cutoff_yr, maybe use time series split.
+    
+    #From merged feature vector dataframe, create a training a testing split for machine learning model.
+    #IMPORTANT: split data based on a cut-off month-year date (we DONT want data from future leaking into training.)
+    #df: merged feature vector dataframe
+    #target_name: target column name we want to train for
+    # - can be ... (target_zhvi_3m, target_zhvi_6m)
+    #cuttoff_yr: year to split for test split (cutoff_yr will be incl. in test split)
 
     returns -> x_train, x_test, y_train, y_test (values ready for model training via sklearn)
-    """
+    
     df = df.copy() # (just to make sure we don't mess up the original dataframe passed)
 
     df = df.dropna(subset=[target_name])
@@ -177,3 +184,4 @@ def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int):
     print(f"Test:     {len(y_test):,} rows ({cutoff_yr} → {df.loc[x_test.index, 'year'].max()})")
 
     return x_train, x_test, y_train, y_test
+"""

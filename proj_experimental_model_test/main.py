@@ -11,7 +11,7 @@ from RealEstateData import RealEstateDataClass
 
 if __name__ == "__main__":
     user_input = 0
-    data_class = RealEstateDataClass(ds, dn, de, year_earliest=2018)
+    data_class = RealEstateDataClass(ds, dn, de, year_earliest=2015)
     current_file_path = Path(__file__).resolve()
     main_path = current_file_path.parent
     models_path = main_path / "saved_models"
@@ -47,6 +47,8 @@ if __name__ == "__main__":
         "7. Evaluate Models\n" \
         "8. Tune Hyperparameters (Incomplete)\n" \
         
+        "\n - Debugging - \n" \
+        "9. Get Redfin. \n" \
         "q. Quit Program. ")
 
         user_input = input("Enter the menu option number: ")
@@ -96,11 +98,17 @@ if __name__ == "__main__":
                     print(f"Training for {target}.")
                     x_train, x_test, y_train, y_test = data_class.get_model_inputs(target, target_cutoffs[target])
 
-                    model = mo.train_model(x_train,y_train,max_features=0.5)
+                    #model = mo.train_model(x_train,y_train)
+                    model = mo.train_model(x_train,y_train) 
+
                     models_trained[target] = model
                     feature_split[target] = (x_train, x_test, y_train, y_test)
-
+                    
+                    print("Train Eval")
+                    mo.eval_model(model, x_train, y_train, target)
+                    print("Test Eval")
                     mo.eval_model(model, x_test, y_test, target)
+                    print("---")
                     mo.feature_analyze(model, x_train.columns.tolist())
                     mo.save_model(model, models_path / f"{target}_rf_model.joblib")
 
@@ -137,7 +145,13 @@ if __name__ == "__main__":
 
             case '8':
                 # TODO: Tune Hyperparameters
-                print("Not implemented yet")                
+                print("Not implemented yet")     
+
+            case '9':
+                # Get Redfin data for debug purpose
+                df_redfin = ds.get_redfin()     
+                print(df_redfin.columns.tolist())      
+                print(df_redfin.head())
             case 'q':
                 print("Quitting Program.")
 

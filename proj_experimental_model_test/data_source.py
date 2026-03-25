@@ -27,12 +27,20 @@ main_path = Path(current_file_path.parent)
 url_fbi = "https://api.usa.gov/crime/fbi/cde"
 
 # Base Worker functs/script
-def writeWebToLocal(url, target_path):
+def writeWebToLocal(url, target_path, stream=False, chunk_size=8192):
+    """
+    set stream = true if we need to write LARGE files (ex: redfin zip data is 1GB+)
+    """
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
-    req = requests.get(url)
+    req = requests.get(url,stream=stream)
     with open(target_path, "wb") as file:
-        file.write(req.content)
+        if stream:
+            for chunk in req.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    file.write(chunk)
+        else:
+            file.write(req.content)
 
 def get_zcta_county(year, county_id=48113):
     url = "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt"
@@ -146,6 +154,17 @@ def pull_zillow_inv():
 
     return pd.read_csv(target_path)
 
+def pull_redfin_zip(cols):
+    """
+    read from redfin website for supply/demand info
+    WARNING: LARGE FILE SIZE
+    """
+    target_path = main_path / "data_raw/supply_demand/zip_code_market_tracker.tsv000.gz"
+    url = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/zip_code_market_tracker.tsv000.gz"
+    writeWebToLocal(url, target_path, True)
+
+    return pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols)
+
 def get_zillow_supply(type):
     """
     types: sales_count, rent, new_listings, inventory
@@ -181,6 +200,44 @@ def get_zillow_supply(type):
         zillow_supplydemand_df.rename(columns={'RegionName' : 'msa'}, inplace=True) # msa = Metropolitan Statistical Area
 
     return zillow_supplydemand_df
+
+def get_redfin():
+    target_path = main_path / f"data_raw/supply_demand/zip_code_market_tracker.tsv000.gz"
+    cols_to_use = [
+        "PERIOD_BEGIN",
+        "PERIOD_END",
+        "REGION",           # zipcode
+        "REGION_TYPE",      # need to be zip code
+        "STATE_CODE",       # just filter to TX
+        "PROPERTY_TYPE",    # all residentials
+        "HOMES_SOLD",       # = sales_count (zillow)
+        "NEW_LISTINGS",     # = new_listings (zillow)
+        "INVENTORY",        # = inventory (zillow)
+    ]
+     # Additional info if needed, these extra info may be valuable
+    """
+        "MEDIAN_DOM",           # median days on market = how fast homes sell
+        "AVG_SALE_TO_LIST",     # sale price vs list price ratio = demand strength
+        "SOLD_ABOVE_LIST",      # % sold above asking 
+        "PENDING_SALES",        # pending = leading indicator, before closed sales
+        "PRICE_DROPS",          # % of listings with price reductions 
+        "OFF_MARKET_IN_TWO_WEEKS", # % going under contract fast = demand urgency
+        "MONTHS_OF_SUPPLY",     # already computing this 
+    """
+    if Path(target_path).exists():
+        redfin_df = pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols_to_use)
+    else:
+        redfin_df = pull_redfin_zip(cols_to_use)
+    
+    redfin_df = redfin_df[redfin_df['STATE_CODE'] == 'TX'].copy()
+    redfin_df = redfin_df[redfin_df['PROPERTY_TYPE'] == 'All Residential'].copy()
+    redfin_df = redfin_df[redfin_df['REGION_TYPE'] == 'zip code'].copy()
+    
+    redfin_df.drop(columns=['STATE_CODE','PROPERTY_TYPE','REGION_TYPE'], inplace=True)
+    redfin_df.rename(columns={'PERIOD_BEGIN':'date', 'PERIOD_END':'date_end', 'REGION':'zipcode', 'HOMES_SOLD':'sales_count',
+                               'NEW_LISTINGS':'new_listings', 'INVENTORY':'inventory'}, inplace=True)
+
+    return redfin_df
 
 # 3. Economice Environment
 def pull_mortgage_rates():
@@ -462,7 +519,7 @@ def get_crimes_df(year, type):
         crime_df = pd.DataFrame(columns=["agency","month","offenses_per_100k","offenses","clearances","population"])
 
         for row in agency_city.itertuples():
-            crime_v_agency_df = pull_crime_by_agency(row.agency_id,row.agency_name,year,type)
+            crime_v_agency_df = pull_crime_by_agency(row.agency,row.agency_name,year,type)
             if crime_df.empty:
                 crime_df = crime_v_agency_df
             else:

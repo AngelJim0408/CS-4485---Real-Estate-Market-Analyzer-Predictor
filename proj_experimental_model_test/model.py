@@ -26,10 +26,13 @@ def eval_model(model, x_test, y_test, target_name: str):
     rmse = root_mean_squared_error(y_test,y_predict)
     r2 = r2_score(y_test,y_predict)
 
-    print(f"\n-- {target_name} --")
+    print(f"\n-- {target_name} Evaluation --")
     if 'pct' in target_name:
         print(f"MAE: {mae:,.4f}%")
         print(f"RMSE:  {rmse:,.4f}%")
+        
+        dir_acc = np.mean(np.sign(y_predict) == np.sign(y_test))
+        print(f"Directional Accuracy: {dir_acc:.3f}")
     else:
         print(f"MAE: ${mae:,.0f}")
         print(f"RMSE:  ${rmse:,.0f}")

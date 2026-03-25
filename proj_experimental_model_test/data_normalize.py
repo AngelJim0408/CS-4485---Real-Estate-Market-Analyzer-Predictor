@@ -17,6 +17,17 @@ def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
     else:
         return df[['year','month',value_str]]
 
+def normalize_redfin_data(df: pd.DataFrame, zipcodes: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    # zipcode need to be converted (remove 'Zip Code:' from each zipcode row.)
+    # ex) (Zip Code: 75044) -> (75044)
+    df['zipcode'] = df['zipcode'].str[:5]
+
+    # Only keep Zipcode from dallas county
+
+
+    return
+
 def normalize_mortgage(df: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize mortgage rates by removing unecessary columns, resampling weekly data to monthly, and separating date into month and year.
