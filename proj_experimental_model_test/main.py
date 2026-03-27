@@ -50,6 +50,7 @@ if __name__ == "__main__":
         
         "\n - Debugging - \n" \
         "9. Get Redfin. \n" \
+        "10. Get x_train head.\n" \
         "q. Quit Program. ")
 
         user_input = input("Enter the menu option number: ")
@@ -99,15 +100,14 @@ if __name__ == "__main__":
                     print(f"Training for {target}.")
                     x_train, x_test, y_train, y_test = data_class.get_model_inputs(target, target_cutoffs[target])
 
-                    #model = mo.train_model(x_train,y_train)
                     model = mo.train_model(x_train,y_train) 
 
                     models_trained[target] = model
                     feature_split[target] = (x_train, x_test, y_train, y_test)
 
                     print("---")
-                    results = mo.eval_model(model, x_train, y_train, target, "Training")
-                    mo.write_log(model_log_path, results)
+                    # results = mo.eval_model(model, x_train, y_train, target, "Training")
+                    # mo.write_log(model_log_path, results)
                     results = mo.eval_model(model, x_test, y_test, target, "Testing")
                     mo.write_log(model_log_path, results)
                     print("---")
@@ -148,14 +148,47 @@ if __name__ == "__main__":
                         
 
             case '8':
-                # TODO: Tune Hyperparameters
-                print("Not implemented yet")     
+                # TODO: Tune Models
+                # Train models, put in models_trained
+                target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct','target_zhvi_3m','target_zhvi_6m']
+                mo.clear_log(model_log_path)
+                ## train for all of the above
+                for target in target_names:
+                    print(f"Training for {target}.")
+                    x_train, x_test, y_train, y_test = data_class.get_model_inputs(target, target_cutoffs[target])
+
+                    if target_names=='target_zhvi_3m_pct' or target_names=='target_zhvi_6m_pct':
+                        model, params = mo.tune_model(x_train,y_train,param_type="pct")
+                    else:
+                        model, params = mo.tune_model(x_train,y_train,param_type="abs")
+
+                    models_trained[target] = model
+                    feature_split[target] = (x_train, x_test, y_train, y_test)
+
+                    print("---")
+                    results = mo.eval_model(model, x_train, y_train, target, "Training")
+                    mo.write_log(model_log_path, results)
+                    results = mo.eval_model(model, x_test, y_test, target, "Testing")
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    results = mo.feature_analyze(model, x_train.columns.tolist())
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    mo.save_model(model, models_path / f"{target}_rf_model.joblib")
+
+                print(f"All models trained and saved to '{models_path}'.")    
 
             case '9':
                 # Get Redfin data for debug purpose
                 df_redfin = ds.get_redfin()     
                 print(df_redfin.columns.tolist())      
                 print(df_redfin.head())
+            case '10':
+                # print split heads
+                target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct','target_zhvi_3m','target_zhvi_6m']
+                for target in target_names:
+                    x_train, x_test, y_train, y_test = data_class.get_model_inputs(target, target_cutoffs[target])
+                print(x_train.head())
             case 'q':
                 print("Quitting Program.")
 

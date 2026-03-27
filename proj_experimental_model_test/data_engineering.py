@@ -20,7 +20,7 @@ def create_feature_vectors(df: pd.DataFrame):
         Gives model memory, so that price history in the past can be used to make predictions from price at ceratin date.
         """
         if 'zhvi' in group.columns:
-            for lag_m in [1, 3, 6, 12]: # Memory from 1-12 months
+            for lag_m in [1, 3, 6]: 
                 group[f'zhvi_lag{lag_m}m'] = group['zhvi'].shift(lag_m)
             for period in [1, 3, 6]:
                 group[f'zhvi_pct_change_{period}m'] = group['zhvi'].pct_change(period) * 100
@@ -159,13 +159,14 @@ def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int): # 
 
     df = df.dropna(subset=[target_name])
 
-    unused_cols   = ['zipcode', 'year', 'month'] # not useful for training
+    # consider removing 'school_rating_mean', 'school_rating_max', 'school_count' as well
+    unused_cols   = ['zipcode', 'year','month'] # not useful for training
     target_cols = [c for c in df.columns if c.startswith('target_')] # target is what we train for
     raw_cols    = ['zhvi']  # use lags instead of raw value (this is what we're predicting so don't incl.)
     
     # features will be all columns that are not the above
     features = [c for c in df.columns if c not in unused_cols + target_cols + raw_cols]
-
+    
     x = df[features].dropna()
     y = df.loc[x.index, target_name] # ensure y has matching index to x
 
