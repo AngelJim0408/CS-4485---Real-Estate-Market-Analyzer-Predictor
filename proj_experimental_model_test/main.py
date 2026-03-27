@@ -16,6 +16,7 @@ if __name__ == "__main__":
     main_path = current_file_path.parent
     models_path = main_path / "saved_models"
     models_path.mkdir(exist_ok=True)  # create models folder if doesnt exist
+    model_log_path = main_path /"saved_models/model_logs.txt"
     
     target_cutoffs = {
         'target_zhvi_3m_pct':2022,
@@ -92,7 +93,7 @@ if __name__ == "__main__":
             case '5':
                 # Train models, put in models_trained
                 target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct','target_zhvi_3m','target_zhvi_6m']
-                
+                mo.clear_log(model_log_path)
                 ## train for all of the above
                 for target in target_names:
                     print(f"Training for {target}.")
@@ -103,13 +104,16 @@ if __name__ == "__main__":
 
                     models_trained[target] = model
                     feature_split[target] = (x_train, x_test, y_train, y_test)
-                    
-                    print("Train Eval")
-                    mo.eval_model(model, x_train, y_train, target)
-                    print("Test Eval")
-                    mo.eval_model(model, x_test, y_test, target)
+
                     print("---")
-                    mo.feature_analyze(model, x_train.columns.tolist())
+                    results = mo.eval_model(model, x_train, y_train, target, "Training")
+                    mo.write_log(model_log_path, results)
+                    results = mo.eval_model(model, x_test, y_test, target, "Testing")
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    results = mo.feature_analyze(model, x_train.columns.tolist())
+                    mo.write_log(model_log_path, results)
+                    print("---")
                     mo.save_model(model, models_path / f"{target}_rf_model.joblib")
 
                 print(f"All models trained and saved to '{models_path}'.")

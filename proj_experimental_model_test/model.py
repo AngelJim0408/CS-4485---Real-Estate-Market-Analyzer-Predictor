@@ -16,7 +16,7 @@ def train_model(x_train, y_train, **kwargs):
     rf_model.fit(x_train,y_train)
     return rf_model
 
-def eval_model(model, x_test, y_test, target_name: str):
+def eval_model(model, x_test, y_test, target_name: str, eval_type: str):
     """
     Evaluate model
     """
@@ -26,22 +26,27 @@ def eval_model(model, x_test, y_test, target_name: str):
     rmse = root_mean_squared_error(y_test,y_predict)
     r2 = r2_score(y_test,y_predict)
 
-    print(f"\n-- {target_name} Evaluation --")
+    eval_str = "\n---------------------"
+    eval_str += f"\n-- {target_name} {eval_type} Evaluation --"
     if 'pct' in target_name:
-        print(f"MAE: {mae:,.4f}%")
-        print(f"RMSE:  {rmse:,.4f}%")
+        eval_str += f"\nMAE: {mae:,.4f}%"
+        eval_str += f"\nRMSE:  {rmse:,.4f}%"
         
         dir_acc = np.mean(np.sign(y_predict) == np.sign(y_test))
-        print(f"Directional Accuracy: {dir_acc:.3f}")
+        eval_str += f"\nDirectional Accuracy: {dir_acc:.3f}"
     else:
-        print(f"MAE: ${mae:,.0f}")
-        print(f"RMSE:  ${rmse:,.0f}")
-    print(f"R²:   {r2:.3f}")
-    print("---------------------")
+        eval_str += f"\nMAE: ${mae:,.0f}"
+        eval_str += f"\nRMSE:  ${rmse:,.0f}"
 
-    return y_predict
+    eval_str += f"\nR^2 score:   {r2:.3f}"
+    eval_str += "\n---------------------"
+    
+    print(eval_str)
+
+    return eval_str
 
 def save_model(model, target_path):
+    models_path = target_path.parent
     # save model to path (recommend save to saved_models folder)
     joblib.dump(model, target_path)
     return
@@ -100,7 +105,16 @@ def feature_analyze(model, features: list, top_n: int = 20):
     """
     importance_df = pd.DataFrame({"feature":features,"pct_infl": model.feature_importances_}).sort_values("pct_infl", ascending=False)
 
-    print(f"\n-- Top {top_n} features --")
-    print(importance_df.head(top_n).to_string(index=False))
+    feature_results = f"\n-- Top {top_n} features --\n"
+    feature_results += importance_df.head(top_n).to_string(index=False)
+    feature_results += "\n---------------------\n"
 
-    return importance_df
+    return feature_results
+
+def write_log(logfile, content: str):
+    with open(logfile,'a') as log:
+        log.write(content)
+
+def clear_log(logfile):
+    with open(logfile, 'w') as log:
+        pass
