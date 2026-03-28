@@ -2,4 +2,12 @@
 # datasets
 proj_experimental_model_test/data_raw
 proj_experimental_model_test/data_proc
-*.csv
+*.csvdata_raw-20260320T212215Z-1-001.zip
+.DS_Store
+__pycache__/
+.idea/
+.venv/
+data_raw/
+*.db
+*.db-shm
+*.db-wal
