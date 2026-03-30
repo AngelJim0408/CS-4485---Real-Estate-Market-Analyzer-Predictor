@@ -69,9 +69,9 @@ def download_tea_school_directory(save_path):
 def get_campus_zip_data(year=None):
     if year is not None:
         curr_year = date.today().year
-        if year in range(2018, curr_year - 1):
+        if year in range(2018, curr_year):
             year = max(2019, year)
-            target_path = main_path / f"data_raw/school_data/ArchivedSchoolAndDistrictSpring{year}.csv"
+            target_path = main_path / f"data_raw/school_data/school_district_full_crossroad/ArchivedSchoolAndDistrictSpring{year}.csv"
         else:
             print(f"File not found for year:{year}")
             return None

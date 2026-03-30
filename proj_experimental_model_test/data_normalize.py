@@ -1,6 +1,11 @@
 import pandas as pd
 
 # Normalization funcs
+def normalize_zipcodes(df: pd.DataFrame, zip_col: str='zipcode') -> pd.DataFrame:
+    # normalize all zips to a string (just in case of leading 0)
+    df[zip_col] = df[zip_col].astype(str)
+    return df
+
 def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
     df = df.copy()
     key_col = df.columns[0]
@@ -63,7 +68,9 @@ def normalize_school(school_df: pd.DataFrame, school_dir: pd.DataFrame) -> pd.Da
     # zipcode,score,campus_id,campus,year
     school_df = school_df[['zipcode','score','campus_id','campus']]
     school_df = school_df[school_df['score'] != '.']
-    school_df['zipcode'] =  school_df['zipcode'].str[:5]
+
+    school_df['zipcode'] = school_df['zipcode'].str[:5]
+    school_df = school_df[school_df['zipcode'] != ' ']
 
     return school_df
 
@@ -81,9 +88,9 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
     agency ids not Assoc w/ zip (will count for multiple zips if implement)
     TX0571300 Highland Park 75205, 75209, 75219	 <- keep for Real estate Data
 
-    TX0570600 Cockrell Hill 75211			 <- entirely inside Dallas PD
+    TX0570600 Cockrell Hill 75211		 <- entirely inside Dallas PD
     TX0572400 Wilmer 	75172			 <- small population
-    TX0574700 Glenn Heights 75154			 <- Small presence
+    TX0574700 Glenn Heights 75154		 <- Small presence
     TX0575500 Ovilla	75154			 <- Small presence
     TX0700200 Ferris	75125			 <- Mostly Ellis
     TX0610600 Lewisville	75067, 75077,75057,75056 <- Remove (Mostly Denton County)
@@ -180,7 +187,7 @@ def build_merged_df( # if zipcode not column, means data for whole county
 
     ## schools can have multiple per zip, aggregate the school campuses
     school["score"] = pd.to_numeric(school["score"], errors="coerce")
-    school_grouped = school.groupby(["zipcode", "year"])["score"].agg(school_rating_mean="mean",school_rating_max="max",school_count="count").reset_index()
+    school_grouped = school.groupby(['zipcode', 'year'])["score"].agg(school_rating_mean="mean",school_rating_max="max",school_count="count").reset_index()
     main_df = main_df.merge(school_grouped, on=['zipcode','year'], how='left')
 
     ## crime data also needs aggregation with agencies + (differentiate between violent and property)

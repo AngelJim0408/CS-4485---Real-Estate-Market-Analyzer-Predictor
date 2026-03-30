@@ -7,9 +7,9 @@ class RealEstateDataClass:
         self.dn = data_normalize
         self.de = data_engineering
 
-        self.data_yr = date.today().year - 1 
+        self.curr_yr = date.today().year
         self.year_start = year_earliest
-        self.year_end = self.data_yr - 2
+        self.year_end = self.curr_yr - 3
 
         # Raw Data
         self.zhvi_df = None
@@ -76,9 +76,9 @@ class RealEstateDataClass:
 
         # 3.ECONOMIC ENVIRONMENT
         self.mortgage_rates_df = self.ds.get_mortgage_rates() # Weekly level (based on country)
-        self.unemployment_rates_df = self.ds.get_unemployment(self.data_yr) # County-lvl (Can try zip level if need be)
+        self.unemployment_rates_df = self.ds.get_unemployment(self.curr_yr - 1) # County-lvl (Can try zip level if need be)
 
-        for year in range(self.year_start, self.data_yr):
+        for year in range(self.year_start, self.curr_yr):
             self.median_income_dict[year] = self.ds.get_med_income(year)
 
             # 4.NEIGHBORHOOD QUALITY
@@ -122,13 +122,17 @@ class RealEstateDataClass:
         self.mortgage_rates_proc = self.dn.normalize_mortgage(self.mortgage_rates_df)
         self.unemployment_rates_proc = self.unemployment_rates_df # already in usable form: year,month,unemployment_rate
         # Normalize separated year data ( median income, school, crime)
-        for year in range(self.year_start, self.data_yr):
+        for year in range(self.year_start, self.curr_yr):
 
             self.median_income_dict[year] = self.dn.normalize_income(self.median_income_dict[year])
 
-            if self.school_rating_dict[year] is not None:
+            if year in self.school_rating_dict and self.school_rating_dict[year] is not None:
                 year_archive = max(2019, year)
-                self.school_rating_dict[year] = self.dn.normalize_school(self.school_rating_dict[year], self.school_archived_dir[year_archive])
+
+                if self.school_archived_dir[year_archive] is not None:
+                    self.school_rating_dict[year] = self.dn.normalize_school(self.school_rating_dict[year], self.school_archived_dir[year_archive])
+                else:
+                    print(f"Warning: No school archive found for year: {year_archive}")
 
             self.crime_violent_dict[year] = self.dn.normalize_crime(self.crime_violent_dict[year], agency_zipcodes)
             self.crime_property_dict[year] = self.dn.normalize_crime(self.crime_property_dict[year], agency_zipcodes)
