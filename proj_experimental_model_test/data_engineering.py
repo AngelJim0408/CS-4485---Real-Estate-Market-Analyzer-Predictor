@@ -171,8 +171,6 @@ def clean_features_predict(df: pd.DataFrame):
 
     # features will be all columns that are not the above
     features = [c for c in new_df.columns if c not in unused_cols + target_cols + raw_cols]
-    nan_columns = new_df.columns[new_df.isna().any()].tolist()
-    print(nan_columns)
     return new_df[features].dropna()
 
 # split using cutoff_yr

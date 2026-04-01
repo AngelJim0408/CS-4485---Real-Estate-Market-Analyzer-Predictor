@@ -33,6 +33,7 @@ def load_models(m3_path,m6_path,m3_pct_path,m6_pct_path):
 def get_predictions(master_df, zipcode, year, month, models_abs, models_pct):
     # Get entire history of selected zipcode
     zip_history = master_df[master_df["zipcode"] == zipcode].copy()
+
     if len(zip_history) == 0:
         print(f"No data found for zipcode: {zipcode}")
         return None
@@ -43,15 +44,18 @@ def get_predictions(master_df, zipcode, year, month, models_abs, models_pct):
     zip_vectors = feature_vectors[feature_vectors['zipcode'] == zipcode]
     if year is not None and month is not None:
         # if year/month given, use as filter 
-        target_rows = zip_vectors[(feature_vectors['year'] == year) & (feature_vectors['month'] == month)] # filter by zip,year,month
+        target_rows = zip_vectors[(zip_vectors['year'] == year) & (zip_vectors['month'] == month)] # filter by zip,year,month
     elif year is not None:
         # year given, month not gvien
-        target_rows = zip_vectors[(feature_vectors['year'] == year)].tail(1)
+        target_rows = zip_vectors[(zip_vectors['year'] == year)].tail(1)
     elif month is not None:
         # month given but not year
-        target_rows = zip_vectors[(feature_vectors['month'] == month)].tail(1)
+        target_rows = zip_vectors[(zip_vectors['month'] == month)].tail(1)
     else:
         target_rows = zip_vectors.tail(1)
+
+    year = target_rows['year'].iloc[0]
+    month = target_rows['month'].iloc[0]
 
     if target_rows.empty:
         print(f"No feature data for zipcode: {zipcode}, {month}/{year}.")
@@ -60,8 +64,8 @@ def get_predictions(master_df, zipcode, year, month, models_abs, models_pct):
     
     # Filter to target AFTER getting correct features built and set, Then get predictions
     feat = de.clean_features_predict(target_rows)
-    print(target_rows)
     predictions = {}
+
     print("Getting predictions...")
     for model_type, model in models_abs.items():
         predictions[model_type] = model.predict(feat)[0]
@@ -69,7 +73,7 @@ def get_predictions(master_df, zipcode, year, month, models_abs, models_pct):
     for model_type, model in models_pct.items():
         predictions[model_type] = model.predict(feat)[0]
 
-    return predictions
+    return predictions, year, month
 
 # Output format functions
 def get_zhvi_curr(master_df, zipcode, year, month):
@@ -201,12 +205,7 @@ while(usr_input != 'q'):
                 continue
 
             # TODO: Handle month/ propagation for what we have.
-            if year is None:
-                year = curr_date.year - 1
-            if month is None:
-                month = 12
-
-            predictions = get_predictions(master_df, zipcode, year, month, models_abs, models_pct)
+            predictions, year, month = get_predictions(master_df, zipcode, year, month, models_abs, models_pct)
 
             if predictions is None:
                 print("No predictions could be generated.")
