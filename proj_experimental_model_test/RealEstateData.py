@@ -76,7 +76,7 @@ class RealEstateDataClass:
 
         # 3.ECONOMIC ENVIRONMENT
         self.mortgage_rates_df = self.ds.get_mortgage_rates() # Weekly level (based on country)
-        self.unemployment_rates_df = self.ds.get_unemployment(self.curr_yr - 1) # County-lvl (Can try zip level if need be)
+        self.unemployment_rates_df = self.ds.get_unemployment(self.curr_yr) # County-lvl (Can try zip level if need be)
 
         for year in range(self.year_start, self.curr_yr):
             self.median_income_dict[year] = self.ds.get_med_income(year)
