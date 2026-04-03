@@ -97,14 +97,14 @@ def get_market_signals(master_df, zipcode, year, month):
     """
     return {
         "Mortgage Rate":r.get("mortgage_rate", "N/A"),
-        "Unemployment": r.get("unemployment_rate", "N/A"),
+        "Unemployment Rate": r.get("unemployment_rate", "N/A"),
         "Median Income":r.get("median_income", "N/A"),
         "Inventory":    r.get("inventory", "N/A"),
         "Sales Count":  r.get("sales_count", "N/A"),
         "New Listings": r.get("new_listings", "N/A"),
 
     }, {
-        "Aberage School Rating (0 - 100)": r.get("school_rating_mean", "N/A"),
+        "Average School Rating (0 - 100)": r.get("school_rating_mean", "N/A"),
         "Violent Crime Per 100k":     r.get("violent_offenses_per_100k", "N/A"),
         "Property Crime Per 100k":     r.get("property_offenses_per_100k", "N/A"),
     }
