@@ -109,6 +109,16 @@ def get_market_signals(master_df, zipcode, year, month):
         "Property Crime Per 100k":     r.get("property_offenses_per_100k", "N/A"),
     }
 
+def print_zips(mainpath):
+    zip_path = mainpath / "data_raw/tables/zipcodes.csv"
+    zip_df = pd.read_csv(zip_path)
+
+    print("_____________* Zipcodes *_____________")
+    for zip in zip_df['zipcode'].to_list():
+        print(zip)
+    print("______________________________________")
+
+
 def print_features(df):
     feature_vectors = de.create_feature_vectors(df)
     print("_____________* Features *_____________")
@@ -197,6 +207,7 @@ while(usr_input != 'q'):
     print('What type of information do you need?\n---' \
     '\n1. Make predictions of future home values in regions based on user input information (zip, month, year)' \
     '\n2. Test log' \
+    '\n3. Get zips' \
     '\nq. Quit Program.')
     print("___")
     usr_input = input("Enter Number Input: ")
@@ -231,6 +242,8 @@ while(usr_input != 'q'):
             print("-------------------------------")
         case '2':
             print_features(master_df)
+        case '3':
+            print_zips(main_path)
         case 'q':
             print("Quitting Program...")
         case _:
