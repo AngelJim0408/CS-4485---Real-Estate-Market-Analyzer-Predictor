@@ -109,6 +109,16 @@ def get_market_signals(master_df, zipcode, year, month):
         "Property Crime Per 100k":     r.get("property_offenses_per_100k", "N/A"),
     }
 
+def print_features(df):
+    feature_vectors = de.create_feature_vectors(df)
+    print("_____________* Features *_____________")
+    count = 0
+    for col in feature_vectors.columns.to_list():
+        count += 1
+        print(col)
+    print(f"Feature count: {count}")
+    print("______________________________________")
+
 def print_results(zipcode, year, month, current_zhvi, predictions, market_factors, add_factors):
     print("__________________________________________________________")
     print(f"Real Estate Predictions for: {zipcode} | {month}/{year}")
@@ -186,7 +196,7 @@ usr_input = None
 while(usr_input != 'q'):
     print('What type of information do you need?\n---' \
     '\n1. Make predictions of future home values in regions based on user input information (zip, month, year)' \
-    '\n2. Request future predictions via user input (i.e. find predicted price of user input zipcode, month, year)' \
+    '\n2. Test log' \
     '\nq. Quit Program.')
     print("___")
     usr_input = input("Enter Number Input: ")
@@ -220,7 +230,7 @@ while(usr_input != 'q'):
             print_results(zipcode, year, month, curr_zhvi, predictions, market_factors, add_factors)
             print("-------------------------------")
         case '2':
-            print("Not currently implemented.")
+            print_features(master_df)
         case 'q':
             print("Quitting Program...")
         case _:
