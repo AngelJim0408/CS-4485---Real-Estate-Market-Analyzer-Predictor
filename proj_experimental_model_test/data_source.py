@@ -27,12 +27,20 @@ main_path = Path(current_file_path.parent)
 url_fbi = "https://api.usa.gov/crime/fbi/cde"
 
 # Base Worker functs/script
-def writeWebToLocal(url, target_path):
+def writeWebToLocal(url, target_path, stream=False, chunk_size=8192):
+    """
+    set stream = true if we need to write LARGE files (ex: redfin zip data is 1GB+)
+    """
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
-    req = requests.get(url)
+    req = requests.get(url,stream=stream)
     with open(target_path, "wb") as file:
-        file.write(req.content)
+        if stream:
+            for chunk in req.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    file.write(chunk)
+        else:
+            file.write(req.content)
 
 def get_zcta_county(year, county_id=48113):
     url = "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt"
@@ -48,7 +56,6 @@ def get_zcta_county(year, county_id=48113):
 def download_tea_school_directory(save_path):
     """
     Downloads the TEA school and district data file for a given school year.
-    year=2018 → downloads the 2018-2019 school year file.
     """
     # AskTED download endpoint — county filter 057 = Dallas County
     url = (
@@ -59,8 +66,18 @@ def download_tea_school_directory(save_path):
         f.write(r.content)
     print(f"Saved: {save_path}")
 
-def get_campus_zip_data():
-    target_path = main_path / "data_raw/school_data/school_directory.csv"
+def get_campus_zip_data(year=None):
+    if year is not None:
+        curr_year = date.today().year
+        if year in range(2018, curr_year):
+            year = max(2019, year)
+            target_path = main_path / f"data_raw/school_data/school_district_full_crossroad/ArchivedSchoolAndDistrictSpring{year}.csv"
+        else:
+            print(f"File not found for year:{year}")
+            return None
+    else:
+        target_path = main_path / "data_raw/school_data/school_directory.csv"
+
     if Path(target_path).exists():
         campus_zip_df = pd.read_csv(target_path)
     else:
@@ -68,10 +85,18 @@ def get_campus_zip_data():
         campus_zip_df = pd.read_csv(target_path)
 
     campus_zip_df = campus_zip_df[campus_zip_df['County Name'] == 'DALLAS COUNTY']
-    campus_zip_df = campus_zip_df[['School Name','School Zip']]
-    campus_zip_df.rename(columns={'School Name' : 'campus', 'School Zip' : 'zipcode'}, inplace=True)
+    campus_zip_df = campus_zip_df[['School Number','School Name','School Zip']]
+    campus_zip_df['School Number'] = campus_zip_df['School Number'].str[1:]
+
+    campus_zip_df.rename(columns={'School Number' : 'campus_id','School Name' : 'campus', 'School Zip' : 'zipcode'}, inplace=True)
     
     return campus_zip_df
+
+def get_lookup_table(filename):
+    target_path = main_path / f"data_raw/tables/{filename}"
+
+    look_up_df = pd.read_csv(target_path)
+    return look_up_df
 # -------------
 
 # 1. PRICE MOMENTUM DATA PULLING/GETTING
@@ -91,6 +116,7 @@ def get_zhvi_data():
         zhvi_df = pull_zhvi_data()
     # zhvi has all zipcodes, we clean to get just the ones in dallas county.
     dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"].copy()
+    dallas_zhvi_df = dallas_zhvi_df[dallas_zhvi_df["StateName"] == "TX"]
 
     dallas_zhvi_df.drop(columns=['RegionID','SizeRank','RegionType','StateName','State','City','Metro','CountyName'], inplace=True)
     dallas_zhvi_df.rename(columns={'RegionName' : 'zipcode'}, inplace=True)
@@ -128,6 +154,17 @@ def pull_zillow_inv():
 
     return pd.read_csv(target_path)
 
+def pull_redfin_zip(cols, dmap):
+    """
+    read from redfin website for supply/demand info
+    WARNING: LARGE FILE SIZE
+    """
+    target_path = main_path / "data_raw/supply_demand/zip_code_market_tracker.tsv000.gz"
+    url = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/zip_code_market_tracker.tsv000.gz"
+    writeWebToLocal(url, target_path, True)
+
+    return pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols, dtype=dmap,chunksize=200_000, low_memory=True)
+
 def get_zillow_supply(type):
     """
     types: sales_count, rent, new_listings, inventory
@@ -148,8 +185,9 @@ def get_zillow_supply(type):
                 zillow_supplydemand_df = pull_zillow_inv()
             case _:
                 return None
-    # zhvi has all zipcodes, we clean to get just the ones in dallas county.
-    #dallas_zhvi_df = zhvi_df[zhvi_df["CountyName"] == "Dallas County"]
+            
+    zillow_supplydemand_df = zillow_supplydemand_df[zillow_supplydemand_df["StateName"] == "TX"]
+
     if 'CountyName' in zillow_supplydemand_df.columns:
         zillow_supplydemand_df = zillow_supplydemand_df[zillow_supplydemand_df["CountyName"] == "Dallas County"].copy()
 
@@ -163,6 +201,69 @@ def get_zillow_supply(type):
 
     return zillow_supplydemand_df
 
+def get_redfin(zipcodes):
+    target_path = main_path / f"data_raw/supply_demand/zip_code_market_tracker.tsv000.gz"
+    cols_to_use = [
+        "PERIOD_BEGIN",
+        "PERIOD_END",
+        "REGION",           # zipcode
+        "REGION_TYPE",      # need to be zip code
+        "STATE_CODE",       # just filter to TX
+        "PROPERTY_TYPE",    # all residentials
+        "HOMES_SOLD",       # = sales_count (zillow)
+        "NEW_LISTINGS",     # = new_listings (zillow)
+        "INVENTORY",        # = inventory (zillow)
+    ]
+    dtype_map = {
+        "REGION": "string",
+        "STATE_CODE": "string",
+        "REGION_TYPE": "string",
+        "PROPERTY_TYPE": "string",
+        "HOMES_SOLD": "float32",
+        "NEW_LISTINGS": "float32",
+        "INVENTORY": "float32",
+    }
+     # Additional info if needed, these extra info may be valuable
+    """
+        "MEDIAN_DOM",           # median days on market = how fast homes sell
+        "AVG_SALE_TO_LIST",     # sale price vs list price ratio = demand strength
+        "SOLD_ABOVE_LIST",      # % sold above asking 
+        "PENDING_SALES",        # pending = leading indicator, before closed sales
+        "PRICE_DROPS",          # % of listings with price reductions 
+        "OFF_MARKET_IN_TWO_WEEKS", # % going under contract fast = demand urgency
+        "MONTHS_OF_SUPPLY",     # already computing this 
+    """
+    if Path(target_path).exists():
+        reader = pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols_to_use, dtype=dtype_map,
+                                chunksize=200_000, low_memory=True)
+    else:
+        reader = pull_redfin_zip(cols_to_use, dtype_map)
+
+    if reader:
+        chunks = []
+        dallas_zips = set(zipcodes['zipcode'].astype(str))
+        for chunk in reader:
+            chunk = chunk[
+                (chunk['STATE_CODE'] == 'TX') &
+                (chunk['PROPERTY_TYPE'] == 'All Residential') &
+                (chunk['REGION_TYPE'] == 'zip code')
+            ]
+
+            chunk['REGION'] = chunk['REGION'].astype(str).str.extract(r'(\d{5})')[0] # zipcode remove label at front, keep nums
+            # Filter to Dallas County
+            chunk = chunk[chunk['REGION'].isin(dallas_zips)]
+            chunks.append(chunk)
+
+
+        redfin_df = pd.concat(chunks, ignore_index=True)
+    
+    
+    redfin_df.drop(columns=['STATE_CODE','PROPERTY_TYPE','REGION_TYPE'], inplace=True)
+    redfin_df.rename(columns={'PERIOD_BEGIN':'date', 'PERIOD_END':'date_end', 'REGION':'zipcode', 'HOMES_SOLD':'sales_count',
+                               'NEW_LISTINGS':'new_listings', 'INVENTORY':'inventory'}, inplace=True)
+
+    return redfin_df
+
 # 3. Economice Environment
 def pull_mortgage_rates():
     target_path = main_path / "data_raw/economic_env/mortgage_rates_weekly.xlsx"
@@ -174,29 +275,34 @@ def pull_mortgage_rates():
 def pull_unemployment(year_end, year_start):
     target_path = main_path / "data_raw/economic_env/unemployment_rates.csv"
     url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
-    payload = {
-        'seriesid' : ['LAUCN481130000000003'],
-        'startyear' : f'{year_start}',
-        'endyear' : f'{year_end}',
-    }
+    rows =[]
+    # Loop in 10-year chunks
+    for start in range(year_start, year_end + 1, 10):
+        end = min(start + 9, year_end)
 
-    # TODO: Finish getting data, turn to csv file, return df
-    req = requests.post(url, json=payload)
-    data = req.json()
+        payload = {
+            'seriesid': ['LAUCN481130000000003'],
+            'startyear': str(start),
+            'endyear': str(end),
+        }
 
-    rows = []
+        req = requests.post(url, json=payload)
+        data = req.json()
 
-    for item in data["Results"]["series"][0]["data"]:
-        if item["period"].startswith("M"):
-            rate = item["value"]
+        for item in data["Results"]["series"][0]["data"]:
+            if item["period"].startswith("M"):
+                rate = item["value"]
 
-            rows.append({
-                "year": item["year"],
-                "month": item["period"][1:],
-                "unemployment_rate": float(rate) if rate != '-' else None
-            })
+                rows.append({
+                    "year": int(item["year"]),
+                    "month": int(item["period"][1:]),
+                    "unemployment_rate": float(rate) if rate != '-' else None
+                })
+        
 
     results_df = pd.DataFrame(rows)
+    # sort (since looping 10-yr batches cause out of order dataframe)
+    results_df = results_df.sort_values(by=["year", "month"]).reset_index(drop=True)
     results_df.to_csv(target_path, index=False, lineterminator="\n")
 
     return results_df
@@ -235,6 +341,7 @@ def get_mortgage_rates():
     else:
         mortgage_df = pull_mortgage_rates()
 
+    mortgage_df = mortgage_df.iloc[:-1] # Remove last row (its a disclaimer sentence)
     mortgage_df.columns = ['Week','US30yrFRM','30yerFeesPoints','US15yrFRM','15yrFeesPoints','5/1ARM','5/1ARM_feesPoints','5/1ARM_margin','30yrFRM/5/1ARM_spread']
     return mortgage_df
 
@@ -244,7 +351,7 @@ def get_unemployment(year):
     if Path(target_path).exists():
         unemployment_df = pd.read_csv(target_path)
     else:
-        unemployment_df = pull_unemployment(year, year - 10) # range: 10 years ago - current year
+        unemployment_df = pull_unemployment(year, year - 11) # range: 10 years ago - current year
 
     return unemployment_df
 
@@ -274,15 +381,15 @@ def get_school_rating(year=None):
     school_data_path = Path(main_path / "data_raw/school_data")
 
     if year == 2018:
-        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", usecols=['District Name','Campus Name','Region Name','County Name','Overall\nScore'])
+        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", usecols=['Campus\nNumber','District Name','Region Name','County Name','Overall\nScore'], dtype={"Campus\nNumber": str})
         school_rating_df = school_rating_df[school_rating_df['County Name'] == 'DALLAS']
-        school_rating_df = school_rating_df.dropna(subset=['Campus Name'])
+        school_rating_df = school_rating_df.dropna(subset=['Campus\nNumber'])
+        school_rating_df = school_rating_df.dropna(subset=['Overall\nScore'])
 
-        school_rating_df.rename(columns={'District Name' : 'district','Campus Name' : 'campus','Region Name' : 'region',
+        school_rating_df.rename(columns={'Campus\nNumber' : 'campus_id','District Name' : 'district','Region Name' : 'region',
                                          'County Name': 'county','Overall\nScore' : 'score'}, inplace=True)
         
         school_rating_df['district'] = school_rating_df['district'].str.replace('\n',' ')
-        school_rating_df['campus'] = school_rating_df['campus'].str.replace('\n',' ')
         school_rating_df['region'] = school_rating_df['region'].str.slice(start=11)
         
         return school_rating_df
@@ -291,14 +398,14 @@ def get_school_rating(year=None):
         if year == 2019:
             skiprows = 2
         # This era has 'County' listed as well as rating through 'Overall Rating' and 'Overall Score'
-        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", skiprows=skiprows, usecols=['District','Campus','Region','County','Overall\nScore'])
+        school_rating_df = pd.read_excel(school_data_path / f"{year}_school_raw.xlsx", skiprows=skiprows, usecols=['Campus\nNumber','District','Region','County','Overall\nScore'], dtype={"Campus\nNumber": str})
         school_rating_df = school_rating_df[school_rating_df['County'] == 'DALLAS']
-        school_rating_df = school_rating_df.dropna(subset=['Campus'])
+        school_rating_df = school_rating_df.dropna(subset=['Campus\nNumber'])
+        school_rating_df = school_rating_df.dropna(subset=['Overall\nScore'])
         
-        school_rating_df.rename(columns={'District' : 'district','Campus' : 'campus' ,'Region': 'region','County' : 'county','Overall\nScore' : 'score'}, inplace=True)
+        school_rating_df.rename(columns={'Campus\nNumber' : 'campus_id','District' : 'district','Region': 'region','County' : 'county','Overall\nScore' : 'score'}, inplace=True)
 
         school_rating_df['district'] = school_rating_df['district'].str.replace('\n',' ')
-        school_rating_df['campus'] = school_rating_df['campus'].str.replace('\n',' ')
 
         school_rating_df['region'] = school_rating_df['region'].str.slice(start=10)
 
@@ -306,12 +413,12 @@ def get_school_rating(year=None):
     
     elif 2022 < year:
         # County now has id, countyname in 'CNTYNAME', ratings through 'C_RATING' and 'CDALLS'
-        school_rating_df = pd.read_csv(school_data_path / f"{year}_school_raw.csv", usecols=['CAMPNAME','DISTNAME','CNTYNAME','REGNNAME','CDALLS'])
+        school_rating_df = pd.read_csv(school_data_path / f"{year}_school_raw.csv", usecols=['CAMPUS','DISTNAME','CNTYNAME','REGNNAME','CDALLS'], dtype={"CAMPUS": str})
         school_rating_df = school_rating_df[school_rating_df['CNTYNAME'] == 'DALLAS']
-        school_rating_df = school_rating_df.dropna(subset=['CAMPNAME'])
+        school_rating_df = school_rating_df.dropna(subset=['CAMPUS'])
         school_rating_df = school_rating_df.dropna(subset=['CDALLS'])
 
-        school_rating_df.rename(columns={'CAMPNAME' : 'campus','DISTNAME' : 'district','CNTYNAME' : 'county','REGNNAME' : 'region','CDALLS' : 'score'}, inplace=True)
+        school_rating_df.rename(columns={'CAMPUS' : 'campus_id','DISTNAME' : 'district','CNTYNAME' : 'county','REGNNAME' : 'region','CDALLS' : 'score'}, inplace=True)
         
         school_rating_df['region'] = school_rating_df['region'].str.slice(start=10)
         school_rating_df['score'] = school_rating_df['score'].astype(int)
@@ -442,7 +549,7 @@ def get_crimes_df(year, type):
         crime_df = pd.DataFrame(columns=["agency","month","offenses_per_100k","offenses","clearances","population"])
 
         for row in agency_city.itertuples():
-            crime_v_agency_df = pull_crime_by_agency(row.agency_id,row.agency_name,year,type)
+            crime_v_agency_df = pull_crime_by_agency(row.agency,row.agency_name,year,type)
             if crime_df.empty:
                 crime_df = crime_v_agency_df
             else:
