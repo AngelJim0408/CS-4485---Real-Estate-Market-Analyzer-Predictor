@@ -1,23 +1,19 @@
 """
 GET /api/predictions/{zipcode} — Run the trained Random Forest models
 against the latest data for a zip code and return price forecasts.
+
+Primary predictions come from the dollar models (target_zhvi_3m, target_zhvi_6m).
+Percentage models (target_zhvi_3m_pct, target_zhvi_6m_pct) are display-only,
+shown alongside the dollar prediction for context.
 """
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 from api.database import db_manager
 from api.services.predictor import model_manager
-from api.models import PredictionResponse, PredictionResult
+from api.models import PredictionResponse, Forecast
 
 router = APIRouter()
-
-# Human-readable descriptions for each target
-TARGET_DESCRIPTIONS = {
-    "target_zhvi_3m": "Predicted home value in 3 months ($)",
-    "target_zhvi_6m": "Predicted home value in 6 months ($)",
-    "target_zhvi_3m_pct": "Predicted 3-month price change (%)",
-    "target_zhvi_6m_pct": "Predicted 6-month price change (%)",
-}
 
 
 @router.get("/predictions/{zipcode}", response_model=PredictionResponse)
@@ -25,11 +21,11 @@ def get_predictions(zipcode: str):
     """
     Generate price predictions for a zip code using saved Random Forest models.
 
-    Process:
-    1. Pull the latest row from the master table for the zipcode
-    2. Build a feature DataFrame matching what the models were trained on
-    3. Run each model (3-month, 6-month, percentage variants)
-    4. Return predictions as JSON
+    Returns:
+        forecast_3m: Predicted home value in 3 months (from dollar model)
+                     with percentage change (from pct model) for display.
+        forecast_6m: Predicted home value in 6 months (from dollar model)
+                     with percentage change (from pct model) for display.
     """
     zipcode = zipcode.zfill(5)
 
@@ -68,15 +64,22 @@ def get_predictions(zipcode: str):
             detail="Models failed to generate predictions. Check feature alignment.",
         )
 
-    # Format response
-    predictions = []
-    for target, value in raw_predictions.items():
-        predictions.append(
-            PredictionResult(
-                target=target,
-                predicted_value=round(value, 2),
-                description=TARGET_DESCRIPTIONS.get(target, target),
-            )
+    # Build 3-month forecast: dollar model is the prediction, pct model is display-only
+    forecast_3m = None
+    if "target_zhvi_3m" in raw_predictions:
+        forecast_3m = Forecast(
+            predicted_value=round(raw_predictions["target_zhvi_3m"], 2),
+            predicted_change_pct=round(raw_predictions.get("target_zhvi_3m_pct", 0), 2) if "target_zhvi_3m_pct" in raw_predictions else None,
+            description="Predicted home value in 3 months",
+        )
+
+    # Build 6-month forecast: same approach
+    forecast_6m = None
+    if "target_zhvi_6m" in raw_predictions:
+        forecast_6m = Forecast(
+            predicted_value=round(raw_predictions["target_zhvi_6m"], 2),
+            predicted_change_pct=round(raw_predictions.get("target_zhvi_6m_pct", 0), 2) if "target_zhvi_6m_pct" in raw_predictions else None,
+            description="Predicted home value in 6 months",
         )
 
     return PredictionResponse(
@@ -84,5 +87,6 @@ def get_predictions(zipcode: str):
         current_zhvi=latest.get("zhvi"),
         latest_year=latest.get("year"),
         latest_month=latest.get("month"),
-        predictions=predictions,
+        forecast_3m=forecast_3m,
+        forecast_6m=forecast_6m,
     )

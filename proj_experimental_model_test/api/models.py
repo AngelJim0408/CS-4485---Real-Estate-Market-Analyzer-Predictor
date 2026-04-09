@@ -47,9 +47,9 @@ class MarketResponse(BaseModel):
 
 # --- Predictions ---
 
-class PredictionResult(BaseModel):
-    target: str
+class Forecast(BaseModel):
     predicted_value: float
+    predicted_change_pct: float | None
     description: str
 
 
@@ -58,7 +58,8 @@ class PredictionResponse(BaseModel):
     current_zhvi: float | None
     latest_year: int | None
     latest_month: int | None
-    predictions: list[PredictionResult]
+    forecast_3m: Forecast | None
+    forecast_6m: Forecast | None
 
 
 # --- Zipcodes ---
