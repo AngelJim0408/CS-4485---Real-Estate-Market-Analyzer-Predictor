@@ -1,6 +1,11 @@
 import pandas as pd
 
 # Normalization funcs
+def normalize_zipcodes(df: pd.DataFrame, zip_col: str='zipcode') -> pd.DataFrame:
+    # normalize all zips to a string (just in case of leading 0)
+    df[zip_col] = df[zip_col].astype(str)
+    return df
+
 def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
     df = df.copy()
     key_col = df.columns[0]
@@ -16,6 +21,19 @@ def normalize_zillow_data(df: pd.DataFrame, value_str: str) -> pd.DataFrame:
         return df[[key_col,'year','month',value_str]]
     else:
         return df[['year','month',value_str]]
+
+def normalize_redfin_data(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    # Deal with dates, turn dates into year, month
+    # Input format
+    ## Date: year-month-day
+    df["date"] = pd.to_datetime(df["date"])
+    df["year"] = df["date"].dt.year
+    df["month"] = df["date"].dt.month
+
+    df.reset_index(drop=True, inplace=True)
+
+    return df[['zipcode','year','month','sales_count','new_listings','inventory']]
 
 def normalize_mortgage(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -50,7 +68,9 @@ def normalize_school(school_df: pd.DataFrame, school_dir: pd.DataFrame) -> pd.Da
     # zipcode,score,campus_id,campus,year
     school_df = school_df[['zipcode','score','campus_id','campus']]
     school_df = school_df[school_df['score'] != '.']
-    school_df['zipcode'] =  school_df['zipcode'].str[:5]
+
+    school_df['zipcode'] = school_df['zipcode'].str[:5]
+    school_df = school_df[school_df['zipcode'] != ' ']
 
     return school_df
 
@@ -68,16 +88,20 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
     agency ids not Assoc w/ zip (will count for multiple zips if implement)
     TX0571300 Highland Park 75205, 75209, 75219	 <- keep for Real estate Data
 
-    TX0570600 Cockrell Hill 75211			 <- entirely inside Dallas PD
+    TX0570600 Cockrell Hill 75211		 <- entirely inside Dallas PD
     TX0572400 Wilmer 	75172			 <- small population
-    TX0574700 Glenn Heights 75154			 <- Small presence
+    TX0574700 Glenn Heights 75154		 <- Small presence
     TX0575500 Ovilla	75154			 <- Small presence
     TX0700200 Ferris	75125			 <- Mostly Ellis
     TX0610600 Lewisville	75067, 75077,75057,75056 <- Remove (Mostly Denton County)
     TX0430800 Wylie		75098 			 <- Remove (Mostly Collin County)
     """
-    df = pd.merge(df,agency_zip,on='agency',how='left')
-    df.dropna(subset=['zipcode'], inplace=True)
+    # If zipcode already exists the data was loaded from the DB (already processed)
+    # — skip the agency merge and just re-clean the types
+    if 'zipcode' not in df.columns:
+        df = pd.merge(df, agency_zip, on='agency', how='left')
+        df.dropna(subset=['zipcode'], inplace=True)
+
     df.dropna(subset=['offenses'], inplace=True)
 
     df["zipcode"] = (
@@ -85,6 +109,16 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
         .astype(str)
         .str.replace(r"\.0$", "", regex=True)  # remove trailing .0
         .str.zfill(5)                           # ensure 5-digit padding
+    )
+
+    # Parse month: FBI API returns "01-2015" format, split to "01" then cast to int
+    # so it matches the integer month columns in all other DataFrames
+    df["month"] = (
+        df["month"]
+        .astype(str)
+        .str.split("-")
+        .str[0]
+        .astype(int)
     )
 
     df = df[['zipcode','agency','month','offenses_per_100k','offenses','clearances']]
@@ -132,7 +166,8 @@ def build_merged_df( # if zipcode not column, means data for whole county
     sales: pd.DataFrame,            # (year,month,sales_count) <- across whole county
     rent: pd.DataFrame,             # (zipcode,year,month,rent)
     listings: pd.DataFrame,         # (year,month,new_listings)
-    inventory: pd.DataFrame,        # (year,month,inventory)
+    inventory: pd.DataFrame,        # (year,month,inventory),
+    redfin_alt: pd.DataFrame,       # (zipcode,year,month,sales_count,new_listings,inventory) <- has zip info, use this first!!!
 
     mortgage: pd.DataFrame,         # *(year,month,mortgage_rate)
     unemployment: pd.DataFrame,     # *(year,month,unemployment_rate)
@@ -152,17 +187,21 @@ def build_merged_df( # if zipcode not column, means data for whole county
     # Join by month + zip
     main_df = main_df.merge(rent, on=['zipcode','year','month'], how='left')
 
-    # Join by month/year (county-lvl)
-    county_month_list = [sales, listings, inventory, unemployment, mortgage]
+    # merge redfin sales_count,new_listings,inventory
+    main_df = main_df.merge(redfin_alt, on=['zipcode','year','month'], how='left')
+
+    # Join by month/year (county-lvl) ignore sales, listings, inventory for now (already in redfin zip)
+    county_month_list = [unemployment, mortgage]
     for df in county_month_list:
         main_df = main_df.merge(df, on=['year','month'], how='left')
+
 
     # Join by year + zip
     main_df = main_df.merge(income, on=['zipcode','year'])
 
     ## schools can have multiple per zip, aggregate the school campuses
     school["score"] = pd.to_numeric(school["score"], errors="coerce")
-    school_grouped = school.groupby(["zipcode", "year"])["score"].agg(school_rating_mean="mean",school_rating_max="max",school_count="count").reset_index()
+    school_grouped = school.groupby(['zipcode', 'year'])["score"].agg(school_rating_mean="mean",school_rating_max="max",school_count="count").reset_index()
     main_df = main_df.merge(school_grouped, on=['zipcode','year'], how='left')
 
     ## crime data also needs aggregation with agencies + (differentiate between violent and property)

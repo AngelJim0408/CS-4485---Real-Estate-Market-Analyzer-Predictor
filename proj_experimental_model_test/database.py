@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS master (
 
     PRIMARY KEY (zipcode, year, month)
 );
+
 """
 
 
@@ -303,6 +304,8 @@ class RealEstateDB:
             "SELECT * FROM master WHERE zipcode = ? ORDER BY year, month",
             (str(zipcode).zfill(5),)
         )
+
+
 
     def table_summary(self):
         """Print row counts for every table."""
