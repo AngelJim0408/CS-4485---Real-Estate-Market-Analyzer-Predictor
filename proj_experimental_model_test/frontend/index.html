@@ -4,566 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dallas Real Estate Explorer</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        :root {
-            --border: #e5e7eb;
-            --text: #111827;
-            --muted: #6b7280;
-            --blue: #2563eb;
-            --blue-soft: #eff6ff;
-            --bg: #ffffff;
-            --shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
-            --radius: 18px;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            font-family: Inter, Arial, Helvetica, sans-serif;
-            background: #fff;
-            color: var(--text);
-        }
-
-        body {
-            overflow: hidden;
-        }
-
-        .app {
-            height: 100vh;
-            display: grid;
-            grid-template-rows: 64px 74px 1fr;
-            background: var(--bg);
-        }
-
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 20px;
-            border-bottom: 1px solid var(--border);
-            background: #fff;
-        }
-
-        .brand {
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .brand span {
-            color: var(--blue);
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--border);
-            background: #fff;
-            flex-wrap: wrap;
-        }
-
-        .toolbar-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .toolbar-select {
-            height: 40px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 0 14px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            background: #fff;
-            outline: none;
-        }
-
-        .toolbar-apply {
-            height: 40px;
-            border: none;
-            border-radius: 999px;
-            padding: 0 16px;
-            background: var(--blue);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .search-shell {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            min-width: 0;
-            position: relative;
-        }
-
-        .search-box {
-            flex: 1;
-            height: 52px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            gap: 12px;
-            background: #fff;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-            transition: box-shadow 0.2s ease, border-color 0.2s ease;
-            position: relative;
-            z-index: 3;
-        }
-
-        .search-box:focus-within {
-            border-color: #bfdbfe;
-            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
-        }
-
-        .search-box input {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 16px;
-            color: #111827;
-            min-width: 0;
-            background: transparent;
-        }
-
-        .clear-btn {
-            border: none;
-            background: transparent;
-            color: #9ca3af;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .clear-btn:hover {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .clear-btn.hidden {
-            display: none;
-        }
-
-        .search-btn {
-            border: none;
-            background: #eff6ff;
-            color: var(--blue);
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .search-suggestions {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            box-shadow: 0 18px 40px rgba(17, 24, 39, 0.14);
-            padding: 8px;
-            z-index: 5;
-            display: none;
-            max-height: 320px;
-            overflow: auto;
-        }
-
-        .search-suggestions.show {
-            display: block;
-        }
-
-        .suggestion-item {
-            width: 100%;
-            border: none;
-            background: transparent;
-            text-align: left;
-            padding: 12px 14px;
-            border-radius: 14px;
-            cursor: pointer;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-
-        .suggestion-item:hover,
-        .suggestion-item.active {
-            background: #f8fafc;
-        }
-
-        .suggestion-icon {
-            font-size: 15px;
-            color: var(--blue);
-            padding-top: 2px;
-        }
-
-        .suggestion-main {
-            font-size: 14px;
-            font-weight: 700;
-            color: #111827;
-            line-height: 1.35;
-        }
-
-        .suggestion-sub {
-            margin-top: 2px;
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1.35;
-        }
-
-        .suggestion-zip {
-            margin-top: 4px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--blue);
-            line-height: 1.3;
-        }
-
-        .content {
-            display: grid;
-            grid-template-columns: 1fr minmax(360px, 460px);
-            min-height: 0;
-        }
-
-        .map-wrap {
-            position: relative;
-            min-width: 0;
-            background: #f8fafc;
-            border-right: 1px solid var(--border);
-        }
-
-        .map {
-            width: 100%;
-            height: 100%;
-            min-height: 0;
-        }
-
-        .map iframe {
-            width: 100%;
-            height: 100%;
-            border: 0;
-            display: block;
-        }
-
-        .data-dock {
-            position: absolute;
-            right: 18px;
-            bottom: 18px;
-            width: 320px;
-            z-index: 2;
-        }
-
-        .sidebar {
-            background: #fff;
-            display: grid;
-            grid-template-rows: auto 1fr;
-            min-height: 0;
-        }
-
-        .sidebar-header {
-            padding: 14px 18px 10px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 4px;
-        }
-
-        .sidebar-header h2 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .sort-link {
-            font-size: 12px;
-            color: #64748b;
-            font-weight: 600;
-            line-height: 1.4;
-        }
-
-        .listing-scroll {
-            overflow: auto;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: #fafafa;
-        }
-
-        .result-card,
-        .detail-card,
-        .data-card {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-        }
-
-        .result-card,
-        .detail-card {
-            padding: 14px;
-        }
-
-        .section-title {
-            font-size: 15px;
-            font-weight: 800;
-            margin: 0 0 10px 0;
-        }
-
-        .result-hero {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .hero-main {
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: #1e3a8a;
-            line-height: 1.05;
-        }
-
-        .hero-note {
-            font-size: 12px;
-            color: #64748b;
-            line-height: 1.4;
-            margin-top: 4px;
-        }
-
-        .result-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .result-stat {
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 10px;
-            background: #fcfcfd;
-        }
-
-        .result-label {
-            font-size: 11px;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .result-value {
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .detail-list {
-            display: grid;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #eef2f7;
-        }
-
-        .detail-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .detail-name {
-            font-size: 12px;
-            color: #4b5563;
-        }
-
-        .detail-value {
-            font-size: 13px;
-            font-weight: 700;
-            color: #111827;
-            text-align: right;
-        }
-
-        .data-card {
-            padding: 18px;
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .data-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            gap: 10px;
-        }
-
-        .data-title h3 {
-            margin: 0;
-            font-size: 20px;
-        }
-
-        .pill {
-            background: var(--blue-soft);
-            color: var(--blue);
-            font-size: 12px;
-            font-weight: 700;
-            padding: 6px 10px;
-            border-radius: 999px;
-        }
-
-        .metric-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .metric {
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 12px;
-            background: #fcfcfd;
-        }
-
-        .metric-label {
-            font-size: 12px;
-            color: var(--muted);
-            margin-bottom: 6px;
-        }
-
-        .metric-value {
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-
-        .prediction-box {
-            background: linear-gradient(135deg, #eff6ff, #dbeafe);
-            border: 1px solid #bfdbfe;
-            border-radius: 16px;
-            padding: 14px;
-        }
-
-        .prediction-label {
-            font-size: 12px;
-            color: #1d4ed8;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .prediction-value {
-            margin-top: 6px;
-            font-size: 32px;
-            font-weight: 800;
-            color: #1e3a8a;
-        }
-
-        .prediction-text {
-            margin-top: 8px;
-            font-size: 14px;
-            color: #475569;
-            line-height: 1.45;
-        }
-
-        @media (max-width: 1200px) {
-            .content {
-                grid-template-columns: 1fr 400px;
-            }
-
-            .data-dock {
-                width: 290px;
-            }
-        }
-
-        @media (max-width: 980px) {
-            body {
-                overflow: auto;
-            }
-
-            .app {
-                height: auto;
-                grid-template-rows: auto auto auto;
-            }
-
-            .toolbar {
-                height: auto;
-            }
-
-            .content {
-                grid-template-columns: 1fr;
-            }
-
-            .map-wrap {
-                height: 720px;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-            }
-
-            .sidebar {
-                height: 560px;
-            }
-
-            .data-dock {
-                width: calc(100% - 36px);
-            }
-        }
-
-        @media (max-width: 640px) {
-            .toolbar {
-                padding: 12px;
-            }
-
-            .map-wrap {
-                height: 620px;
-            }
-
-            .data-dock {
-                width: calc(100% - 24px);
-                right: 12px;
-                bottom: 12px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9OEltQr637XI83xbT579hFDh97qCGGt8&callback=initGoogleMap&loading=async" async defer></script>
 </head>
 <body>
     <div class="app">
         <header class="topbar">
             <div class="brand"><span>Dallas</span>Homes</div>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link active">🗺 Explorer</a>
+                <a href="trends.html" class="nav-link">📈 Trends</a>
+            </nav>
+            <div class="topbar-badge">Dallas County</div>
         </header>
 
         <section class="toolbar">
@@ -577,40 +29,32 @@
                 <div id="searchSuggestions" class="search-suggestions"></div>
             </div>
 
+            <div class="toolbar-divider"></div>
+            <span class="toolbar-label">📅 Month / Year</span>
             <div class="toolbar-controls">
-                <select id="yearSelect" class="toolbar-select">
-                    <option>2024</option>
-                    <option selected>2025</option>
-                    <option>2026</option>
-                    <option>2027</option>
-                </select>
-
                 <select id="monthSelect" class="toolbar-select">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                    <option>4</option>
-                    <option>5</option>
-                    <option>6</option>
-                    <option>7</option>
-                    <option>8</option>
-                    <option>9</option>
-                    <option>10</option>
-                    <option>11</option>
-                    <option selected>12</option>
+                    <option value="1">Jan</option>
+                    <option value="2">Feb</option>
+                    <option value="3">Mar</option>
+                    <option value="4">Apr</option>
+                    <option value="5">May</option>
+                    <option value="6">Jun</option>
+                    <option value="7">Jul</option>
+                    <option value="8">Aug</option>
+                    <option value="9">Sep</option>
+                    <option value="10">Oct</option>
+                    <option value="11">Nov</option>
+                    <option value="12" selected>Dec</option>
                 </select>
 
-                <select id="propertyType" class="toolbar-select">
-                    <option selected>All Residential</option>
-                    <option>Single Family</option>
-                    <option>Condo / Townhome</option>
-                    <option>Multi-Family</option>
-                </select>
-
-                <select id="forecastHorizon" class="toolbar-select">
-                    <option selected>Both Forecasts</option>
-                    <option>3-Month Only</option>
-                    <option>6-Month Only</option>
+                <select id="yearSelect" class="toolbar-select">
+                    <option>2018</option>
+                    <option>2019</option>
+                    <option>2020</option>
+                    <option>2021</option>
+                    <option>2022</option>
+                    <option>2023</option>
+                    <option selected>2024</option>
                 </select>
 
                 <button id="applyBtn" class="toolbar-apply" type="button">Apply</button>
@@ -619,25 +63,18 @@
 
         <main class="content">
             <section class="map-wrap">
-                <div class="map">
-                    <iframe id="mapFrame"
-                            src="https://www.google.com/maps?q=Dallas,%20Texas&z=10&output=embed"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            title="Dallas Texas Map">
-                    </iframe>
-                </div>
+                <div class="map" id="googleMap"></div>
 
                 <div class="data-dock">
                     <div class="data-card">
-                        <div class="data-title">
+                        <div class="data-title" id="dataTitleRow">
                             <h3 id="dataTitle">Dallas Data</h3>
-                            <div class="pill">Live Panel</div>
+                            <div class="pill" id="dataPill">Live Panel</div>
                         </div>
 
                         <div class="metric-grid">
                             <div class="metric">
-                                <div class="metric-label">Median Price</div>
+                                <div class="metric-label">Median Price (ZHVI)</div>
                                 <div class="metric-value" id="medianPrice">--</div>
                             </div>
                             <div class="metric">
@@ -657,7 +94,7 @@
                         <div class="prediction-box">
                             <div class="prediction-label">Prediction Result</div>
                             <div class="prediction-value" id="predictionValue">Location Selected</div>
-                            <div class="prediction-text" id="predictionText">Map location has been updated. Detailed market metrics are not connected yet and will appear after your database is integrated.</div>
+                            <div class="prediction-text" id="predictionText">Map location updated. Press Apply to fetch predictions from the backend.</div>
                         </div>
                     </div>
                 </div>
@@ -672,12 +109,16 @@
                 </div>
 
                 <div class="listing-scroll">
+
+                    <!-- Error banner (shown on API failure) -->
+                    <div class="error-banner" id="errorBanner"></div>
+
                     <div class="result-card">
                         <p class="section-title">Prediction Summary</p>
                         <div class="result-hero">
                             <div>
                                 <div class="hero-main" id="predictionHeroTitle">Prediction Ready</div>
-                                <div class="hero-note" id="predictionHeroNote">Search a Dallas County location on the map, then use the filters above. Backend prediction results will appear here.</div>
+                                <div class="hero-note" id="predictionHeroNote">Search a Dallas County location, set filters, then press Apply.</div>
                             </div>
                         </div>
 
@@ -688,13 +129,13 @@
                             </div>
                             <div class="result-stat">
                                 <div class="result-label">Target Month</div>
-                                <div class="result-value" id="targetMonthText">12/2025</div>
+                                <div class="result-value" id="targetMonthText">12/2024</div>
                             </div>
-                            <div class="result-stat">
+                            <div class="result-stat pred-3m">
                                 <div class="result-label">3-Month Prediction</div>
                                 <div class="result-value" id="threeMonthPrediction">--</div>
                             </div>
-                            <div class="result-stat">
+                            <div class="result-stat pred-6m">
                                 <div class="result-label">6-Month Prediction</div>
                                 <div class="result-value" id="sixMonthPrediction">--</div>
                             </div>
@@ -716,173 +157,510 @@
                     <div class="detail-card">
                         <p class="section-title">Additional Factors</p>
                         <div class="detail-list">
-                            <div class="detail-row"><div class="detail-name">Average School Rating (0 - 100)</div><div class="detail-value" id="schoolFactorDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Average School Rating (0–100)</div><div class="detail-value" id="schoolFactorDetail">--</div></div>
                             <div class="detail-row"><div class="detail-name">Violent Crime per 100k</div><div class="detail-value" id="violentCrimeDetail">--</div></div>
                             <div class="detail-row"><div class="detail-name">Property Crime per 100k</div><div class="detail-value" id="propertyCrimeDetail">--</div></div>
                         </div>
                     </div>
+
                 </div>
             </section>
         </main>
     </div>
 
     <script>
-        const API_BASE = "http://127.0.0.1:8000";
+        /* ================================================================
+           CONFIG — update BASE_URL to match your FastAPI server
+           ================================================================
+           Local dev:   const BASE_URL = 'http://localhost:8000';
+           Deployed:    const BASE_URL = 'https://your-api-domain.com';
+           ================================================================ */
+        const BASE_URL = 'http://localhost:8000';
 
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const mapFrame = document.getElementById('mapFrame');
-        const searchSuggestions = document.getElementById('searchSuggestions');
-        const applyBtn = document.getElementById('applyBtn');
+        /* ================================================================
+           GOOGLE MAPS  — interactive ZIP boundary map
+        
+           ================================================================ */
 
-        const yearSelect = document.getElementById('yearSelect');
-        const monthSelect = document.getElementById('monthSelect');
-        const targetMonthText = document.getElementById('targetMonthText');
+        const DALLAS_CENTER  = { lat: 32.7767, lng: -96.7970 };
+        let   gmap           = null;   // Google Map instance
+        let   zipPolygons    = {};     // zip -> google.maps.Polygon
+        let   activePolygon  = null;
+        let   knownZips      = [];
+        let   infoWindow     = null;
 
-        let debounceTimer = null;
-        let suggestionItems = [];
-        let activeSuggestionIndex = -1;
-        let selectedZipcode = null;
+        // Styles
+        const STYLE_DEFAULT = { strokeColor: '#2563eb', strokeWeight: 1.5, strokeOpacity: 0.7, fillColor: '#2563eb', fillOpacity: 0.07 };
+        const STYLE_HOVER   = { strokeColor: '#1d4ed8', strokeWeight: 2.5, strokeOpacity: 1,   fillColor: '#3b82f6', fillOpacity: 0.20 };
+        const STYLE_ACTIVE  = { strokeColor: '#1d4ed8', strokeWeight: 3,   strokeOpacity: 1,   fillColor: '#2563eb', fillOpacity: 0.30 };
+        const STYLE_NODATA  = { strokeColor: '#9ca3af', strokeWeight: 1,   strokeOpacity: 0.4, fillColor: '#9ca3af', fillOpacity: 0.04 };
 
-        function toTitleCase(text) {
-            return text
-                .toLowerCase()
-                .split(' ')
-                .filter(Boolean)
-                .map(function (word) {
-                    return word.charAt(0).toUpperCase() + word.slice(1);
-                })
-                .join(' ');
+        // Called by Google Maps script tag callback
+        function initGoogleMap() {
+            gmap = new google.maps.Map(document.getElementById('googleMap'), {
+                center:            DALLAS_CENTER,
+                zoom:              10,
+                mapTypeId:         'roadmap',
+                disableDefaultUI:  false,
+                zoomControl:       true,
+                streetViewControl: false,
+                mapTypeControl:    false,
+                fullscreenControl: true,
+                styles: [
+                    { featureType: 'poi',   elementType: 'labels', stylers: [{ visibility: 'off' }] },
+                    { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+                ]
+            });
+
+            infoWindow = new google.maps.InfoWindow();
+
+            // Load ZIP list then boundaries
+            loadZipList();
         }
 
-        function fallbackTitle(query) {
-            const firstPart = query.split(',')[0].trim();
-            return toTitleCase(firstPart || 'Selected Area');
-        }
-
-        function updateClearButton() {
-            if (!clearBtn) return;
-            if (searchInput.value.trim()) {
-                clearBtn.classList.remove('hidden');
-            } else {
-                clearBtn.classList.add('hidden');
+        async function loadZipList() {
+            try {
+                const res  = await fetch(BASE_URL + '/api/zipcodes');
+                const data = await res.json();
+                knownZips  = data.zipcodes || [];
+                await loadZipBoundaries();
+            } catch(e) {
+                console.warn('[Map] Could not load ZIP list:', e);
             }
         }
 
-        function formatCurrency(value) {
-            if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
-            return "$" + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
-        }
+        async function loadZipBoundaries() {
+            // Census TIGERweb — query ZIP polygons within Dallas County bounding box
+            const bbox = '-97.25,32.45,-96.25,33.10';
+            const url  = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/2/query' +
+                '?where=1%3D1' +
+                '&outFields=ZCTA5' +
+                '&f=geojson' +
+                '&returnGeometry=true' +
+                '&geometryType=esriGeometryEnvelope' +
+                '&spatialRel=esriSpatialRelIntersects' +
+                '&inSR=4326&outSR=4326' +
+                '&geometry=' + encodeURIComponent(JSON.stringify({
+                    xmin: -97.25, ymin: 32.45, xmax: -96.25, ymax: 33.10,
+                    spatialReference: { wkid: 4326 }
+                }));
 
-        function formatPercent(value, digits = 2) {
-            if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
-            const num = Number(value);
-            const sign = num > 0 ? "+" : "";
-            return `${sign}${num.toFixed(digits)}%`;
-        }
-
-        function formatNumber(value, digits = 2) {
-            if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
-            return Number(value).toFixed(digits);
-        }
-
-        function setText(id, value) {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value;
-        }
-
-        function resetOutputPanels(titleText = "Prediction Ready", noteText = "Backend prediction results will appear here.") {
-            setText("predictionHeroTitle", titleText);
-            setText("predictionHeroNote", noteText);
-
-            setText("currentZhvi", "--");
-            setText("threeMonthPrediction", "--");
-            setText("sixMonthPrediction", "--");
-
-            setText("mortgageRateDetail", "--");
-            setText("unemploymentDetail", "--");
-            setText("medianIncomeDetail", "--");
-            setText("inventoryDetail", "--");
-            setText("salesCountDetail", "--");
-            setText("newListingsDetail", "--");
-
-            setText("schoolFactorDetail", "--");
-            setText("violentCrimeDetail", "--");
-            setText("propertyCrimeDetail", "--");
-
-            setText("medianPrice", "--");
-            setText("growthRate", "--");
-            setText("schoolRating", "--");
-            setText("crimeLevel", "--");
-
-            setText("predictionValue", "Location Selected");
-            setText("predictionText", "Choose a Dallas County ZIP code and click Apply to load prediction results.");
-        }
-
-        function updateInfoPanel(title, found) {
-            setText('dataTitle', title + ' Data');
-
-            if (!found) {
-                setText('medianPrice', '--');
-                setText('growthRate', '--');
-                setText('schoolRating', '--');
-                setText('crimeLevel', '--');
-                setText('predictionValue', 'Location Not Found');
-                setText('predictionText', 'We could not identify a usable Dallas County ZIP code from the search. Please enter a valid ZIP code.');
+            try {
+                const res  = await fetch(url);
+                const geoj = await res.json();
+                renderGooglePolygons(geoj);
+            } catch(e) {
+                console.warn('[Map] Boundary fetch failed:', e);
             }
         }
 
-        function updateListingPanel(title) {
-            setText('listingTitle', 'Prediction Output');
-            setText('listingSubtitle', 'Dallas County only. Current selected area: ' + title + '.');
-
-            setText('predictionHeroTitle', title + ' Prediction');
-            setText(
-                'predictionHeroNote',
-                'Use the top filters and click Apply to load backend prediction values for the selected ZIP code.'
+        function geojsonCoordsToLatLng(coords) {
+            // GeoJSON coords are [lng, lat] — Google wants {lat, lng}
+            return coords.map(ring =>
+                ring.map(pt => ({ lat: pt[1], lng: pt[0] }))
             );
         }
 
+        function renderGooglePolygons(geojson) {
+            if (!geojson || !geojson.features) return;
+
+            geojson.features.forEach(feat => {
+                const zip      = feat.properties && feat.properties.ZCTA5;
+                if (!zip) return;
+
+                const inDataset = knownZips.includes(zip);
+                const geom      = feat.geometry;
+                if (!geom) return;
+
+                let paths = [];
+
+                if (geom.type === 'Polygon') {
+                    paths = geojsonCoordsToLatLng(geom.coordinates);
+                } else if (geom.type === 'MultiPolygon') {
+                    geom.coordinates.forEach(poly => {
+                        paths = paths.concat(geojsonCoordsToLatLng(poly));
+                    });
+                } else {
+                    return;
+                }
+
+                const style   = inDataset ? STYLE_DEFAULT : STYLE_NODATA;
+                const polygon = new google.maps.Polygon({
+                    paths,
+                    map:              gmap,
+                    strokeColor:      style.strokeColor,
+                    strokeWeight:     style.strokeWeight,
+                    strokeOpacity:    style.strokeOpacity,
+                    fillColor:        style.fillColor,
+                    fillOpacity:      style.fillOpacity,
+                    clickable:        inDataset,
+                    zIndex:           1
+                });
+
+                // Hover
+                polygon.addListener('mouseover', e => {
+                    if (zip !== currentZipcode) applyPolygonStyle(polygon, STYLE_HOVER);
+                    // tooltip removed — no popup on hover
+                });
+
+                polygon.addListener('mouseout', () => {
+                    if (zip !== currentZipcode) {
+                        applyPolygonStyle(polygon, inDataset ? STYLE_DEFAULT : STYLE_NODATA);
+                    }
+                });
+
+                // Click
+                polygon.addListener('click', () => {
+                    if (!inDataset) return;
+                    selectZipFromMap(zip, polygon);
+                });
+
+                zipPolygons[zip] = { polygon, inDataset };
+            });
+        }
+
+        function applyPolygonStyle(polygon, style) {
+            polygon.setOptions({
+                strokeColor:   style.strokeColor,
+                strokeWeight:  style.strokeWeight,
+                strokeOpacity: style.strokeOpacity,
+                fillColor:     style.fillColor,
+                fillOpacity:   style.fillOpacity
+            });
+        }
+
+        function selectZipFromMap(zip, polygon) {
+            // Reset previous active polygon
+            if (activePolygon && activePolygon !== polygon) {
+                const prev = Object.values(zipPolygons).find(v => v.polygon === activePolygon);
+                if (prev) applyPolygonStyle(activePolygon, prev.inDataset ? STYLE_DEFAULT : STYLE_NODATA);
+            }
+
+            activePolygon = polygon;
+            applyPolygonStyle(polygon, STYLE_ACTIVE);
+
+            // Update state + search box
+            currentZipcode       = zip;
+            currentLocationTitle = 'ZIP ' + zip;
+            searchInput.value    = zip;
+            updateClearButton();
+            // Reset panels and auto-fetch predictions
+            resetPanels('ZIP ' + zip);
+            runPrediction();
+        }
+
+        function highlightZipOnMap(zip) {
+            if (!zip || !zipPolygons[zip]) return;
+            const { polygon } = zipPolygons[zip];
+            selectZipFromMap(zip, polygon);
+            // Pan to center of ZIP
+            const bounds = new google.maps.LatLngBounds();
+            polygon.getPaths().forEach(path => path.forEach(pt => bounds.extend(pt)));
+            gmap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+        }
+
+
+        /* ── DOM refs ── */
+        const searchInput       = document.getElementById('searchInput');
+        const searchBtn         = document.getElementById('searchBtn');
+        const clearBtn          = document.getElementById('clearBtn');
+        const searchSuggestions = document.getElementById('searchSuggestions');
+        const applyBtn          = document.getElementById('applyBtn');
+        const yearSelect        = document.getElementById('yearSelect');
+        const monthSelect       = document.getElementById('monthSelect');
+        const targetMonthText   = document.getElementById('targetMonthText');
+        const dataPill          = document.getElementById('dataPill');
+        const errorBanner       = document.getElementById('errorBanner');
+
+        let debounceTimer        = null;
+        let suggestionItems      = [];
+        let activeSuggestionIndex = -1;
+        let currentZipcode       = null;   // last resolved ZIP (if any)
+        let currentLocationTitle = 'Dallas';
+
+        /* ================================================================
+           UTILITIES
+           ================================================================ */
+        function toTitleCase(text) {
+            return text.toLowerCase().split(' ').filter(Boolean)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function fallbackTitle(query) {
+            return toTitleCase(query.split(',')[0].trim() || 'Selected Area');
+        }
+
+        function fmt$$(value) {
+            if (value == null || isNaN(value)) return '--';
+            return '$' + Math.round(value).toLocaleString('en-US');
+        }
+
+        function fmtPct(value) {
+            if (value == null || isNaN(value)) return '--';
+            return (value >= 0 ? '+' : '') + Number(value).toFixed(2) + '%';
+        }
+
+        function fmtNum(value, decimals = 0) {
+            if (value == null || isNaN(value)) return '--';
+            return Number(value).toFixed(decimals);
+        }
+
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+
+        function hideError() {
+            errorBanner.classList.remove('show');
+        }
+
+        function setLoading(on) {
+            applyBtn.disabled = on;
+            applyBtn.textContent = on ? 'Loading…' : 'Apply';
+            dataPill.textContent = on ? 'Loading…' : 'Live Panel';
+            dataPill.classList.toggle('loading', on);
+        }
+
+        /* ================================================================
+           UI PANEL UPDATES
+           ================================================================ */
+        function updateClearButton() {
+            if (!clearBtn) return;
+            clearBtn.classList.toggle('hidden', !searchInput.value.trim());
+        }
+
+        const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        function updateTargetMonthText() {
+            if (targetMonthText && yearSelect && monthSelect) {
+                const monthName = MONTH_NAMES[parseInt(monthSelect.value) - 1];
+                targetMonthText.textContent = monthName + ' ' + yearSelect.value;
+            }
+        }
+
+        function resetPanels(title) {
+            currentLocationTitle = title;
+            document.getElementById('dataTitle').textContent      = title + ' Data';
+            document.getElementById('listingTitle').textContent   = 'Prediction Output';
+            document.getElementById('listingSubtitle').textContent =
+                'Dallas County only. Current selected area: ' + title + '.';
+            document.getElementById('predictionHeroTitle').textContent = title + ' Prediction';
+            document.getElementById('predictionHeroNote').textContent  =
+                'Press Apply to run predictions for ' + title + '.';
+
+            const dashIds = [
+                'medianPrice','growthRate','schoolRating','crimeLevel',
+                'currentZhvi','threeMonthPrediction','sixMonthPrediction',
+                'mortgageRateDetail','unemploymentDetail','medianIncomeDetail',
+                'inventoryDetail','salesCountDetail','newListingsDetail',
+                'schoolFactorDetail','violentCrimeDetail','propertyCrimeDetail'
+            ];
+            dashIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '--';
+            });
+
+            document.getElementById('predictionValue').textContent = 'Location Selected';
+            document.getElementById('predictionText').textContent  =
+                'Map is now showing ' + title + '. Press Apply to fetch predictions.';
+        }
+
+        /* ================================================================
+           FASTAPI INTEGRATION  (branch: kenya/api-backend)
+           ================================================================
+           All endpoints are GET requests — no request body needed.
+
+           GET /api/predictions/{zipcode}
+               → { prediction_3mo, prediction_6mo, ... }
+
+           GET /api/market/{zipcode}
+               → full market snapshot (mortgage, unemployment, income, etc.)
+
+           GET /api/market/{zipcode}/latest
+               → most recent single data point
+
+           GET /api/zhvi/{zipcode}
+               → historical home values
+
+           Run the server with:
+               cd proj_experimental_model_test
+               uvicorn api.main:app --reload --port 8000
+
+           Serve this HTML from port 5173 so CORS passes:
+               python -m http.server 5173
+           ================================================================ */
+
+        async function apiGet(path) {
+            const response = await fetch(BASE_URL + path);
+            if (!response.ok) {
+                const errText = await response.text().catch(() => '');
+                throw new Error('API ' + response.status + (errText ? ': ' + errText : ''));
+            }
+            return await response.json();
+        }
+
+        function applyPredictionData(predictions, market, title) {
+            hideError();
+
+            /* predictions  → GET /api/predictions/{zipcode}
+               Actual response shape:
+               {
+                 current_zhvi, prediction_3m, prediction_6m,
+                 pct_change_3m, pct_change_6m,
+                 market_information: { mortgage_rate, unemployment_rate,
+                                       median_income, inventory,
+                                       sales_count, new_listings },
+                 additional_factors: { school_rating_mean,
+                                       violent_offenses_per_100k,
+                                       property_offenses_per_100k }
+               } */
+            const mi           = predictions.market_information ?? {};
+            const af           = predictions.additional_factors  ?? {};
+
+            const currentZhvi  = predictions.current_zhvi ?? null;
+            const pred3        = predictions.prediction_3m ?? null;
+            const pred6        = predictions.prediction_6m ?? null;
+            const growthRate   = predictions.pct_change_3m ?? null;
+            const mortgageRate = mi.mortgage_rate          ?? null;
+            const unemployment = mi.unemployment_rate      ?? null;
+            const medianIncome = mi.median_income          ?? null;
+            const inventory    = mi.inventory              ?? null;
+            const salesCount   = mi.sales_count            ?? null;
+            const newListings  = mi.new_listings           ?? null;
+            const schoolRating = af.school_rating_mean     ?? null;
+            const violentCrime = af.violent_offenses_per_100k  ?? null;
+            const propCrime    = af.property_offenses_per_100k ?? null;
+
+            /* ── Map-overlay data card ── */
+            document.getElementById('medianPrice').textContent   = fmt$$(currentZhvi);
+            document.getElementById('growthRate').textContent    = fmtPct(growthRate);
+            document.getElementById('schoolRating').textContent  = fmtNum(schoolRating, 1);
+            document.getElementById('crimeLevel').textContent    = fmtNum(violentCrime, 1);
+
+            document.getElementById('predictionValue').textContent =
+                pred3 != null ? fmt$$(pred3) : 'Pending';
+            document.getElementById('predictionText').textContent =
+                pred3 != null
+                    ? '3-month forecast for ' + title + '. See sidebar for full details.'
+                    : 'Prediction returned no value for this location.';
+
+            /* ── Sidebar summary card ── */
+            document.getElementById('predictionHeroTitle').textContent = title + ' Prediction';
+            document.getElementById('predictionHeroNote').textContent  =
+                'Predictions updated for ' + monthSelect.value + '/' + yearSelect.value + '.';
+
+            document.getElementById('currentZhvi').textContent          = fmt$$(currentZhvi);
+            document.getElementById('threeMonthPrediction').textContent  = fmt$$(pred3);
+            document.getElementById('sixMonthPrediction').textContent    = fmt$$(pred6);
+
+            /* ── Market information card ── */
+            document.getElementById('mortgageRateDetail').textContent =
+                mortgageRate != null ? fmtNum(mortgageRate, 2) + '%' : '--';
+            document.getElementById('unemploymentDetail').textContent  =
+                unemployment != null ? fmtNum(unemployment, 1) + '%' : '--';
+            document.getElementById('medianIncomeDetail').textContent  = fmt$$(medianIncome);
+            document.getElementById('inventoryDetail').textContent     =
+                inventory != null ? Math.round(inventory).toLocaleString() : '--';
+            document.getElementById('salesCountDetail').textContent    =
+                salesCount != null ? Math.round(salesCount).toLocaleString() : '--';
+            document.getElementById('newListingsDetail').textContent   =
+                newListings != null ? Math.round(newListings).toLocaleString() : '--';
+
+            /* ── Additional factors card ── */
+            document.getElementById('schoolFactorDetail').textContent  = fmtNum(schoolRating, 1);
+            document.getElementById('violentCrimeDetail').textContent  = fmtNum(violentCrime, 1);
+            document.getElementById('propertyCrimeDetail').textContent = fmtNum(propCrime, 1);
+
+            dataPill.textContent = 'Live';
+            dataPill.classList.remove('loading');
+        }
+
+        async function runPrediction() {
+            const zip = currentZipcode;
+            if (!zip) {
+                showError('No ZIP code resolved. Try searching a specific Dallas ZIP (e.g. 75201).');
+                return;
+            }
+
+            setLoading(true);
+            hideError();
+
+            const year  = yearSelect.value;
+            const month = monthSelect.value;
+
+            try {
+                /* Pass year + month as query params */
+                const predPath = '/api/predictions/' + zip + '?year=' + year + '&month=' + month;
+                const mktPath  = '/api/market/' + zip + '/latest';
+
+                const [predictions, market] = await Promise.all([
+                    apiGet(predPath),
+                    apiGet(mktPath).catch(() => null)
+                ]);
+                applyPredictionData(predictions, market, currentLocationTitle);
+            } catch (err) {
+                /* Friendly message when selected year/month has no data */
+                if (err.message.includes('404') || err.message.toLowerCase().includes('no data')) {
+                    showError(
+                        'No data available for ZIP ' + zip + ' in ' + month + '/' + year + '. ' +
+                        'Try a different year/month — data currently runs through 2024/12.'
+                    );
+                } else {
+                    showError(
+                        'Cannot reach the API at ' + BASE_URL + '. ' +
+                        'Make sure the server is running (uvicorn api.main:app --reload --port 8000) ' +
+                        'and you are serving this file from port 5173. (' + err.message + ')'
+                    );
+                }
+                console.error('[API]', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /* ================================================================
+           SEARCH / NOMINATIM
+           ================================================================ */
         function extractBestTitle(item, query) {
             if (!item) return fallbackTitle(query);
-            const address = item.address || {};
-            const best = address.city || address.town || address.village || address.county || address.state || item.name || query;
+            const addr = item.address || {};
+            const best = addr.city || addr.town || addr.village || addr.county || addr.state || item.name || query;
             return toTitleCase(String(best).trim());
         }
 
+        function extractZipcode(item) {
+            return (item && item.address && item.address.postcode)
+                ? item.address.postcode.replace(/\D/g, '').slice(0, 5)
+                : null;
+        }
+
         function clearSuggestions() {
-            searchSuggestions.innerHTML = '';
+            searchSuggestions.innerHTML  = '';
             searchSuggestions.classList.remove('show');
-            suggestionItems = [];
+            suggestionItems       = [];
             activeSuggestionIndex = -1;
         }
 
         function renderSuggestions(results) {
-            if (!results || !results.length) {
-                clearSuggestions();
-                return;
-            }
+            if (!results || !results.length) { clearSuggestions(); return; }
 
-            suggestionItems = results;
+            suggestionItems       = results;
             activeSuggestionIndex = -1;
 
-            searchSuggestions.innerHTML = results.map(function (item, index) {
-                const address = item.address || {};
+            searchSuggestions.innerHTML = results.map(function(item, index) {
+                const addr = item.address || {};
                 const main = extractBestTitle(item, item.display_name || '');
                 const subParts = [
-                    address.house_number && address.road ? address.house_number + ' ' + address.road : address.road,
-                    address.suburb || address.neighbourhood,
-                    address.city || address.town || address.village,
-                    address.state,
-                    address.country
+                    addr.house_number && addr.road ? addr.house_number + ' ' + addr.road : addr.road,
+                    addr.suburb || addr.neighbourhood,
+                    addr.city || addr.town || addr.village,
+                    addr.state,
+                    addr.country
                 ].filter(Boolean);
-
-                const sub = subParts.join(', ') || item.display_name || '';
-                const zipBadge = address.postcode
-                    ? '<div class="suggestion-zip">ZIP ' + address.postcode + '</div>'
+                const sub     = subParts.join(', ') || item.display_name || '';
+                const zipBadge = addr.postcode
+                    ? '<div class="suggestion-zip">ZIP ' + addr.postcode + '</div>'
                     : '';
-
                 return '<button class="suggestion-item" data-index="' + index + '">' +
                     '<span class="suggestion-icon">📍</span>' +
                     '<span>' +
@@ -895,16 +673,16 @@
 
             searchSuggestions.classList.add('show');
 
-            searchSuggestions.querySelectorAll('.suggestion-item').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    const index = Number(btn.getAttribute('data-index'));
-                    const item = suggestionItems[index];
+            searchSuggestions.querySelectorAll('.suggestion-item').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const idx  = Number(btn.getAttribute('data-index'));
+                    const item = suggestionItems[idx];
                     if (item) {
                         applyResolvedLocation({
-                            found: true,
-                            title: extractBestTitle(item, item.display_name || searchInput.value),
-                            query: item.display_name || searchInput.value,
-                            zipcode: item.address && item.address.postcode ? item.address.postcode : null
+                            found:    true,
+                            title:    extractBestTitle(item, item.display_name || searchInput.value),
+                            query:    item.display_name || searchInput.value,
+                            zipcode:  extractZipcode(item)
                         });
                     }
                 });
@@ -913,88 +691,63 @@
 
         async function fetchSuggestions(query) {
             const normalized = query.trim();
-            const compact = normalized.replace(/[-\s]/g, '');
-            const isZipLike = /^\d{3,10}$/.test(compact);
-            const effectiveQuery = isZipLike ? normalized + ', USA' : normalized;
-
-            const url =
-                'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&q=' +
-                encodeURIComponent(effectiveQuery);
-
-            const response = await fetch(url, {
-                headers: { 'Accept': 'application/json' }
-            });
-
-            if (!response.ok) throw new Error('Suggestion search failed');
-            return await response.json();
+            const compact    = normalized.replace(/[-\s]/g, '');
+            const isZipLike  = /^\d{3,10}$/.test(compact);
+            const effective  = isZipLike ? normalized + ', USA' : normalized;
+            const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&q=' +
+                encodeURIComponent(effective);
+            const res = await fetch(url, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error('Suggestion search failed');
+            return await res.json();
         }
 
         async function resolveLocationName(query) {
             const normalized = query.trim();
-            const compact = normalized.replace(/[-\s]/g, '');
-            const isZipLike = /^\d{3,10}$/.test(compact);
-            const effectiveQuery = isZipLike ? normalized + ', USA' : normalized;
-
-            const url =
-                'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
-                encodeURIComponent(effectiveQuery);
-
+            const compact    = normalized.replace(/[-\s]/g, '');
+            const isZipLike  = /^\d{3,10}$/.test(compact);
+            const effective  = isZipLike ? normalized + ', USA' : normalized;
+            const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+                encodeURIComponent(effective);
             try {
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                if (!response.ok) throw new Error('Search failed');
-
-                const results = await response.json();
+                const res = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!res.ok) throw new Error('Search failed');
+                const results = await res.json();
                 if (!results || !results.length) {
-                    return { found: false, title: fallbackTitle(query), query: query, zipcode: null };
+                    return { found: false, title: fallbackTitle(query), query, zipcode: null };
                 }
-
                 const first = results[0];
                 return {
-                    found: true,
-                    title: extractBestTitle(first, query),
-                    query: first.display_name || query,
-                    zipcode: first.address && first.address.postcode ? first.address.postcode : null
+                    found:   true,
+                    title:   extractBestTitle(first, query),
+                    query:   first.display_name || query,
+                    zipcode: extractZipcode(first),
+                    lat:     parseFloat(first.lat),
+                    lon:     parseFloat(first.lon)
                 };
-            } catch (error) {
-                return { found: false, title: fallbackTitle(query), query: query, zipcode: null };
+            } catch {
+                return { found: false, title: fallbackTitle(query), query, zipcode: null };
             }
         }
 
-        function extractZipcodeFromText(text) {
-            const match = String(text || "").match(/\b\d{5}\b/);
-            return match ? match[0] : null;
-        }
-
-        function normalizeZipcode(zip) {
-            if (!zip) return null;
-            const match = String(zip).match(/\d{5}/);
-            return match ? match[0] : null;
-        }
-
         function applyResolvedLocation(resolved) {
-            const mapQuery = resolved.query || searchInput.value.trim();
-            mapFrame.src = 'https://www.google.com/maps?q=' + encodeURIComponent(mapQuery) + '&output=embed';
-            searchInput.value = resolved.title;
+            searchInput.value    = resolved.title;
+            currentZipcode       = resolved.zipcode || null;
+            currentLocationTitle = resolved.title;
             updateClearButton();
-            updateInfoPanel(resolved.title, resolved.found);
-            updateListingPanel(resolved.title);
+            resetPanels(resolved.title);
             clearSuggestions();
-
-            const zipFromResolved = normalizeZipcode(resolved.zipcode);
-            const zipFromQuery = extractZipcodeFromText(mapQuery);
-            const zipFromInput = extractZipcodeFromText(searchInput.value);
-
-            selectedZipcode = zipFromResolved || zipFromQuery || zipFromInput || null;
-
-            resetOutputPanels(
-                resolved.title + " Prediction",
-                selectedZipcode
-                    ? "ZIP " + selectedZipcode + " selected. Click Apply to load backend prediction results."
-                    : "No ZIP code detected yet. Enter a Dallas County ZIP code, then click Apply."
-            );
+            // Highlight ZIP boundary on map if we have a ZIP
+            if (resolved.zipcode) {
+                highlightZipOnMap(resolved.zipcode);
+            } else {
+                // Pan map to the searched location
+                try {
+                    const coords = resolved.lat && resolved.lon
+                        ? [resolved.lat, resolved.lon]
+                        : DALLAS_CENTER;
+                    map.setView(coords, 12);
+                } catch {}
+            }
         }
 
         async function updateMap() {
@@ -1004,139 +757,43 @@
             applyResolvedLocation(resolved);
         }
 
-        async function applyPrediction() {
-            const inputZip = extractZipcodeFromText(searchInput.value);
-            const zipcode = normalizeZipcode(selectedZipcode || inputZip);
-
-            if (!zipcode) {
-                alert("Please enter a valid 5-digit Dallas County ZIP code, then click Apply.");
-                return;
-            }
-
-            const year = yearSelect.value;
-            const month = monthSelect.value;
-
-            setText("predictionValue", "Loading...");
-            setText("predictionText", "Fetching prediction results from the FastAPI backend...");
-
-            try {
-                const url = `${API_BASE}/api/predictions/${zipcode}?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`;
-                const response = await fetch(url);
-
-                if (!response.ok) {
-                    let message = `Request failed with status ${response.status}`;
-                    try {
-                        const err = await response.json();
-                        if (err && err.detail) {
-                            message = typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail);
-                        }
-                    } catch (_) {}
-                    throw new Error(message);
-                }
-
-                const data = await response.json();
-
-                setText("currentZhvi", formatCurrency(data.current_zhvi));
-                setText("threeMonthPrediction", formatCurrency(data.prediction_3m));
-                setText("sixMonthPrediction", formatCurrency(data.prediction_6m));
-
-                setText("targetMonthText", `${data.month}/${data.year}`);
-
-                setText("mortgageRateDetail", formatPercent(data.market_information?.mortgage_rate));
-                setText("unemploymentDetail", formatPercent(data.market_information?.unemployment_rate));
-                setText("medianIncomeDetail", formatCurrency(data.market_information?.median_income));
-                setText("inventoryDetail", formatNumber(data.market_information?.inventory, 2));
-                setText("salesCountDetail", formatNumber(data.market_information?.sales_count, 0));
-                setText("newListingsDetail", formatNumber(data.market_information?.new_listings, 0));
-
-                setText("schoolFactorDetail", formatNumber(data.additional_factors?.school_rating_mean, 2));
-                setText("violentCrimeDetail", formatNumber(data.additional_factors?.violent_offenses_per_100k, 2));
-                setText("propertyCrimeDetail", formatNumber(data.additional_factors?.property_offenses_per_100k, 2));
-
-                setText("medianPrice", formatCurrency(data.current_zhvi));
-                setText("growthRate", formatPercent(data.pct_change_6m));
-                setText("schoolRating", formatNumber(data.additional_factors?.school_rating_mean, 1));
-
-                const propertyCrime = Number(data.additional_factors?.property_offenses_per_100k);
-                let crimeLabel = "--";
-                if (!Number.isNaN(propertyCrime)) {
-                    if (propertyCrime < 1500) crimeLabel = "Low";
-                    else if (propertyCrime < 3000) crimeLabel = "Moderate";
-                    else crimeLabel = "High";
-                }
-                setText("crimeLevel", crimeLabel);
-
-                const areaTitle = searchInput.value.trim() || `ZIP ${zipcode}`;
-                setText("predictionHeroTitle", areaTitle + " Prediction");
-                setText(
-                    "predictionHeroNote",
-                    `Prediction loaded for ZIP ${data.zipcode} using ${data.month}/${data.year} market data.`
-                );
-
-                setText("predictionValue", formatCurrency(data.prediction_6m));
-                setText(
-                    "predictionText",
-                    `3-month change: ${formatPercent(data.pct_change_3m)} | 6-month change: ${formatPercent(data.pct_change_6m)}`
-                );
-            } catch (error) {
-                setText("predictionValue", "Error");
-                setText("predictionText", error.message || "Failed to load prediction data.");
-                console.error(error);
-            }
-        }
+        /* ================================================================
+           EVENT LISTENERS
+           ================================================================ */
+        applyBtn.addEventListener('click', runPrediction);
 
         searchBtn.addEventListener('click', updateMap);
 
-        if (applyBtn) {
-            applyBtn.addEventListener('click', applyPrediction);
-        }
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            updateClearButton();
+            clearSuggestions();
+            searchInput.focus();
+        });
 
-        if (clearBtn) {
-            clearBtn.addEventListener('click', function () {
-                searchInput.value = '';
-                selectedZipcode = null;
-                updateClearButton();
-                clearSuggestions();
-                resetOutputPanels("Prediction Ready", "Enter a Dallas County ZIP code and click Apply.");
-                searchInput.focus();
-            });
-        }
-
-        searchInput.addEventListener('input', function () {
+        searchInput.addEventListener('input', function() {
             updateClearButton();
             const query = searchInput.value.trim();
             clearTimeout(debounceTimer);
-
-            if (query.length < 2) {
-                clearSuggestions();
-                return;
-            }
-
-            debounceTimer = setTimeout(async function () {
+            if (query.length < 2) { clearSuggestions(); return; }
+            debounceTimer = setTimeout(async function() {
                 try {
                     const results = await fetchSuggestions(query);
                     renderSuggestions(results);
-                } catch (error) {
-                    clearSuggestions();
-                }
+                } catch { clearSuggestions(); }
             }, 250);
         });
 
-        searchInput.addEventListener('keydown', function (event) {
+        searchInput.addEventListener('keydown', function(event) {
             const buttons = Array.from(searchSuggestions.querySelectorAll('.suggestion-item'));
-
             if (event.key === 'ArrowDown' && buttons.length) {
                 event.preventDefault();
                 activeSuggestionIndex = (activeSuggestionIndex + 1) % buttons.length;
-                buttons.forEach(function (btn, i) {
-                    btn.classList.toggle('active', i === activeSuggestionIndex);
-                });
+                buttons.forEach((btn, i) => btn.classList.toggle('active', i === activeSuggestionIndex));
             } else if (event.key === 'ArrowUp' && buttons.length) {
                 event.preventDefault();
                 activeSuggestionIndex = (activeSuggestionIndex - 1 + buttons.length) % buttons.length;
-                buttons.forEach(function (btn, i) {
-                    btn.classList.toggle('active', i === activeSuggestionIndex);
-                });
+                buttons.forEach((btn, i) => btn.classList.toggle('active', i === activeSuggestionIndex));
             } else if (event.key === 'Enter') {
                 event.preventDefault();
                 if (activeSuggestionIndex >= 0 && buttons[activeSuggestionIndex]) {
@@ -1149,30 +806,23 @@
             }
         });
 
-        document.addEventListener('click', function (event) {
-            if (
-                !searchSuggestions.contains(event.target) &&
+        document.addEventListener('click', function(event) {
+            if (!searchSuggestions.contains(event.target) &&
                 event.target !== searchInput &&
-                event.target !== clearBtn
-            ) {
-                if (event.target !== searchBtn) clearSuggestions();
+                event.target !== clearBtn &&
+                event.target !== searchBtn) {
+                clearSuggestions();
             }
         });
 
-        function updateTargetMonthText() {
-            if (targetMonthText && yearSelect && monthSelect) {
-                targetMonthText.textContent = monthSelect.value + '/' + yearSelect.value;
-            }
-        }
+        yearSelect.addEventListener('change',  updateTargetMonthText);
+        monthSelect.addEventListener('change', updateTargetMonthText);
 
-        if (yearSelect) yearSelect.addEventListener('change', updateTargetMonthText);
-        if (monthSelect) monthSelect.addEventListener('change', updateTargetMonthText);
-
-        updateInfoPanel('Dallas', true);
-        updateListingPanel('Dallas');
-        updateClearButton();
+        /* ── Init ── */
+        resetPanels('Dallas');
         updateTargetMonthText();
-        resetOutputPanels("Dallas Prediction", "Enter a Dallas County ZIP code and click Apply to load backend results.");
+        updateClearButton();
+        initMap();
     </script>
 </body>
 </html>
