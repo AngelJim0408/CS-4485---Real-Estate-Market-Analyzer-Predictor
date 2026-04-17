@@ -69,9 +69,9 @@ def download_tea_school_directory(save_path):
 def get_campus_zip_data(year=None):
     if year is not None:
         curr_year = date.today().year
-        if year in range(2018, curr_year - 1):
+        if year in range(2018, curr_year):
             year = max(2019, year)
-            target_path = main_path / f"data_raw/school_data/ArchivedSchoolAndDistrictSpring{year}.csv"
+            target_path = main_path / f"data_raw/school_data/school_district_full_crossroad/ArchivedSchoolAndDistrictSpring{year}.csv"
         else:
             print(f"File not found for year:{year}")
             return None
@@ -275,29 +275,34 @@ def pull_mortgage_rates():
 def pull_unemployment(year_end, year_start):
     target_path = main_path / "data_raw/economic_env/unemployment_rates.csv"
     url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
-    payload = {
-        'seriesid' : ['LAUCN481130000000003'],
-        'startyear' : f'{year_start}',
-        'endyear' : f'{year_end}',
-    }
+    rows =[]
+    # Loop in 10-year chunks
+    for start in range(year_start, year_end + 1, 10):
+        end = min(start + 9, year_end)
 
-    # TODO: Finish getting data, turn to csv file, return df
-    req = requests.post(url, json=payload)
-    data = req.json()
+        payload = {
+            'seriesid': ['LAUCN481130000000003'],
+            'startyear': str(start),
+            'endyear': str(end),
+        }
 
-    rows = []
+        req = requests.post(url, json=payload)
+        data = req.json()
 
-    for item in data["Results"]["series"][0]["data"]:
-        if item["period"].startswith("M"):
-            rate = item["value"]
+        for item in data["Results"]["series"][0]["data"]:
+            if item["period"].startswith("M"):
+                rate = item["value"]
 
-            rows.append({
-                "year": item["year"],
-                "month": item["period"][1:],
-                "unemployment_rate": float(rate) if rate != '-' else None
-            })
+                rows.append({
+                    "year": int(item["year"]),
+                    "month": int(item["period"][1:]),
+                    "unemployment_rate": float(rate) if rate != '-' else None
+                })
+        
 
     results_df = pd.DataFrame(rows)
+    # sort (since looping 10-yr batches cause out of order dataframe)
+    results_df = results_df.sort_values(by=["year", "month"]).reset_index(drop=True)
     results_df.to_csv(target_path, index=False, lineterminator="\n")
 
     return results_df
@@ -346,7 +351,7 @@ def get_unemployment(year):
     if Path(target_path).exists():
         unemployment_df = pd.read_csv(target_path)
     else:
-        unemployment_df = pull_unemployment(year, year - 10) # range: 10 years ago - current year
+        unemployment_df = pull_unemployment(year, year - 11) # range: 10 years ago - current year
 
     return unemployment_df
 

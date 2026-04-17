@@ -2,6 +2,14 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 
+def forward_fill_zip(df: pd.DataFrame):
+    df = df.copy()
+    id_cols = ["zipcode", "year", "month"]
+    fillable_cols = [c for c in df.columns if c not in id_cols]
+
+    df[fillable_cols] = (df.groupby("zipcode")[fillable_cols].transform(lambda x: x.ffill()))
+    return df
+
 def create_feature_vectors(df: pd.DataFrame):
     """
     Creates the features to be used in the model from the merged dataframe.
@@ -10,6 +18,7 @@ def create_feature_vectors(df: pd.DataFrame):
     Features incl: lag, rolling mean/std, year-over-year % change, ratios, seasonality, and target
     """
     # Make sure dataframe is sorted by (zip, year, month)
+    df = forward_fill_zip(df)
     df = df.copy().sort_values(["zipcode", "year", "month"]).reset_index(drop=True)
 
     # function for each zipcode grouping
@@ -60,7 +69,7 @@ def create_feature_vectors(df: pd.DataFrame):
         """
         for col in ['zhvi','median_income','unemployment_rate','sales_count','inventory','new_listings']:
              if col in group.columns:
-                  group[f'{col}_yoy_percent'] = group[col].pct_change(12) * 100
+                  group[f'{col}_yoy_percent'] = group[col].pct_change(12, fill_method=None) * 100
 
         # ratios
         """
@@ -135,13 +144,34 @@ def create_feature_vectors(df: pd.DataFrame):
 
         return group
     
-    df = df.groupby("zipcode", group_keys=False).apply(zip_modify)
+    zipcodes = df["zipcode"].copy()
+    df = df.groupby("zipcode", group_keys=False).apply(zip_modify, include_groups=False)
+    df["zipcode"] = zipcodes
+
     return df
 
 # split using time series split
 def get_time_split(df: pd.DataFrame, target_name: str, n_splits=3):
 
     return
+
+def get_master_df(main_path: pd.DataFrame):
+    # Get master dataframe
+    df = pd.read_csv(main_path / "data_proc/MASTER.csv")
+    return df
+
+def clean_features_predict(df: pd.DataFrame): 
+    # Clean features to be ready for use with model (especially for predicting with loaded models.)
+    new_df = df.copy()
+    #new_df = df.dropna(subset=[target_name])
+
+    unused_cols   = ['zipcode', 'year','month'] # not useful for training
+    target_cols = [c for c in new_df.columns if c.startswith('target_')] # target is what we train for
+    raw_cols    = ['zhvi']  # use lags instead of raw value (this is what we're predicting so don't incl.)
+
+    # features will be all columns that are not the above
+    features = [c for c in new_df.columns if c not in unused_cols + target_cols + raw_cols]
+    return new_df[features].dropna()
 
 # split using cutoff_yr
 def get_train_test_split(df: pd.DataFrame, target_name: str, cutoff_yr: int): # instead of specific cutoff_yr, maybe use time series split.

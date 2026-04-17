@@ -25,6 +25,7 @@ def eval_model(model, x_test, y_test, target_name: str, eval_type: str):
 
     mae = mean_absolute_error(y_test,y_predict)
     rmse = root_mean_squared_error(y_test,y_predict)
+    mape = np.mean(np.abs((y_test - y_predict) / y_test))
     r2 = r2_score(y_test,y_predict)
 
     eval_str = "\n---------------------"
@@ -38,6 +39,7 @@ def eval_model(model, x_test, y_test, target_name: str, eval_type: str):
     else:
         eval_str += f"\nMAE: ${mae:,.0f}"
         eval_str += f"\nRMSE:  ${rmse:,.0f}"
+        eval_str += f"\nMAPE: {mape * 100:,.2f}%"
 
     eval_str += f"\nR^2 score:   {r2:.3f}"
     eval_str += "\n---------------------"
@@ -55,7 +57,7 @@ def tune_model(x_train, y_train, n_iter=25, n_splits=3, random_state=42, param_t
     )
 
     # Separate param grids for pct vs absolute models
-    if param_type is "pct":
+    if param_type == "pct":
         param_dist= {
             "n_estimators":      [200, 300, 500, 800],
             "max_depth":         [8, 10, 12, 16, None],
