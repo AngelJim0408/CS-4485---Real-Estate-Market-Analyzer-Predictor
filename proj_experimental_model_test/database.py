@@ -12,7 +12,8 @@ Tables
   school_ratings    (zipcode, campus_id, year, score)
   crime_violent     (zipcode, agency, year, month, offenses_per_100k, offenses, clearances)
   crime_property    (zipcode, agency, year, month, offenses_per_100k, offenses, clearances)
-  master            (all merged + engineered features — written from MASTER.csv)
+  master            (all merged data — raw from build_merged_df)
+  feature_vectors   (all engineered features — output of create_feature_vectors)
 """
 
 import sqlite3
@@ -152,6 +153,10 @@ CREATE TABLE IF NOT EXISTS master (
 );
 """
 
+# feature_vectors table is created dynamically since its columns
+# depend on create_feature_vectors() output — we use to_sql with
+# if_exists="replace" which auto-creates the table schema.
+
 
 # ---------------------------------------------------------------------------
 # Helper: map processed CSV filenames → table names
@@ -249,6 +254,44 @@ class RealEstateDB:
         print("[DB] load_from_csvs complete.")
 
     # ------------------------------------------------------------------
+    # Load feature vectors into database
+    # ------------------------------------------------------------------
+
+    def load_feature_vectors(self, main_folder: str | Path):
+        """
+        Reads MASTER.csv, runs create_feature_vectors() to generate
+        the engineered features (lags, rolling means, ratios, etc.),
+        and stores the result in the feature_vectors table.
+
+        This is the missing step that makes predictions accurate —
+        the Random Forest models were trained on these engineered
+        features, not the raw master data.
+        """
+        import data_engineering as de
+
+        master_path = Path(main_folder) / "data_proc" / "MASTER.csv"
+        if not master_path.exists():
+            print("[DB] Skipping feature_vectors — MASTER.csv not found.")
+            return
+
+        print("[DB] Loading MASTER.csv...")
+        master_df = pd.read_csv(master_path)
+
+        # Normalize zipcode
+        if "zipcode" in master_df.columns:
+            master_df["zipcode"] = master_df["zipcode"].astype(str).str.zfill(5)
+
+        print("[DB] Running create_feature_vectors() — this may take a moment...")
+        feature_df = de.create_feature_vectors(master_df)
+
+        # Normalize zipcode again after feature engineering
+        if "zipcode" in feature_df.columns:
+            feature_df["zipcode"] = feature_df["zipcode"].astype(str).str.zfill(5)
+
+        self._upsert_df(feature_df, "feature_vectors")
+        print(f"[DB] feature_vectors table: {feature_df.shape[1]} columns, {len(feature_df):,} rows.")
+
+    # ------------------------------------------------------------------
     # Load directly from RealEstateDataClass (in-memory)
     # ------------------------------------------------------------------
 
@@ -301,6 +344,13 @@ class RealEstateDB:
     def get_master_for_zip(self, zipcode: str) -> pd.DataFrame:
         return self.query(
             "SELECT * FROM master WHERE zipcode = ? ORDER BY year, month",
+            (str(zipcode).zfill(5),)
+        )
+
+    def get_feature_vectors_for_zip(self, zipcode: str) -> pd.DataFrame:
+        """Get engineered feature vectors for a zipcode."""
+        return self.query(
+            "SELECT * FROM feature_vectors WHERE zipcode = ? ORDER BY year, month",
             (str(zipcode).zfill(5),)
         )
 

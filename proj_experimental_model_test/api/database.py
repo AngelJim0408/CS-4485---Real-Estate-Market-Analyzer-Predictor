@@ -1,5 +1,5 @@
 """
-Database connection manager.
+Database connection manager for the API layer.
 Wraps the existing real_estate.db SQLite database.
 """
 
@@ -57,12 +57,40 @@ class DatabaseManager:
         )
 
     def get_latest_master_row(self, zipcode: str) -> dict | None:
-        """Get the most recent row from master for a zipcode (for predictions)."""
+        """Get the most recent row from master for a zipcode (for market data)."""
         rows = self.query(
             "SELECT * FROM master WHERE zipcode = ? ORDER BY year DESC, month DESC LIMIT 1",
             (str(zipcode).zfill(5),),
         )
         return rows[0] if rows else None
+
+    def get_feature_row(self, zipcode: str, year: int = None, month: int = None) -> dict | None:
+        """
+        Get a row from the feature_vectors table for predictions.
+        If year/month provided, get that specific row.
+        Otherwise, get the most recent row.
+        """
+        zipcode = str(zipcode).zfill(5)
+
+        if year is not None and month is not None:
+            rows = self.query(
+                "SELECT * FROM feature_vectors WHERE zipcode = ? AND year = ? AND month = ? LIMIT 1",
+                (zipcode, year, month),
+            )
+        else:
+            rows = self.query(
+                "SELECT * FROM feature_vectors WHERE zipcode = ? ORDER BY year DESC, month DESC LIMIT 1",
+                (zipcode,),
+            )
+        return rows[0] if rows else None
+
+    def has_feature_vectors(self) -> bool:
+        """Check if the feature_vectors table exists and has data."""
+        try:
+            result = self.query("SELECT COUNT(*) as cnt FROM feature_vectors")
+            return result[0]["cnt"] > 0
+        except Exception:
+            return False
 
     def get_table_counts(self) -> dict:
         tables = self.query(
