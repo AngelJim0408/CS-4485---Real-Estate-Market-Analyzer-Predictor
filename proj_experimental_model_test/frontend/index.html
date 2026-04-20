@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dallas Real Estate Explorer</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9OEltQr637XI83xbT579hFDh97qCGGt8&callback=initGoogleMap&loading=async" async defer></script>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="brand"><span>Dallas</span>Homes</div>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link active">🗺 Explorer</a>
+                <a href="trends.html" class="nav-link">📈 Trends</a>
+            </nav>
+            <div class="topbar-badge">Dallas County</div>
+        </header>
+
+        <section class="toolbar">
+            <div class="search-shell">
+                <div class="search-box">
+                    <span style="font-size:18px;">📍</span>
+                    <input id="searchInput" type="text" value="dallas" placeholder="Search city, address, or ZIP code" autocomplete="off" />
+                    <button id="clearBtn" class="clear-btn" aria-label="Clear search">✕</button>
+                    <button id="searchBtn" class="search-btn" aria-label="Search">🔎</button>
+                </div>
+                <div id="searchSuggestions" class="search-suggestions"></div>
+            </div>
+
+            <div class="toolbar-divider"></div>
+            <span class="toolbar-label">📅 Month / Year</span>
+            <div class="toolbar-controls">
+                <select id="monthSelect" class="toolbar-select">
+                    <option value="1">Jan</option>
+                    <option value="2">Feb</option>
+                    <option value="3">Mar</option>
+                    <option value="4">Apr</option>
+                    <option value="5">May</option>
+                    <option value="6">Jun</option>
+                    <option value="7">Jul</option>
+                    <option value="8">Aug</option>
+                    <option value="9">Sep</option>
+                    <option value="10">Oct</option>
+                    <option value="11">Nov</option>
+                    <option value="12" selected>Dec</option>
+                </select>
+
+                <select id="yearSelect" class="toolbar-select">
+                    <option>2018</option>
+                    <option>2019</option>
+                    <option>2020</option>
+                    <option>2021</option>
+                    <option>2022</option>
+                    <option>2023</option>
+                    <option selected>2024</option>
+                </select>
+
+                <button id="applyBtn" class="toolbar-apply" type="button">Apply</button>
+            </div>
+        </section>
+
+        <main class="content">
+            <section class="map-wrap">
+                <div class="map" id="googleMap"></div>
+
+                <div class="data-dock">
+                    <div class="data-card">
+                        <div class="data-title" id="dataTitleRow">
+                            <h3 id="dataTitle">Dallas Data</h3>
+                            <div class="pill" id="dataPill">Live Panel</div>
+                        </div>
+
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <div class="metric-label">Median Price (ZHVI)</div>
+                                <div class="metric-value" id="medianPrice">--</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Growth Rate</div>
+                                <div class="metric-value" id="growthRate">--</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">School Rating</div>
+                                <div class="metric-value" id="schoolRating">--</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Crime Level</div>
+                                <div class="metric-value" id="crimeLevel">--</div>
+                            </div>
+                        </div>
+
+                        <div class="prediction-box">
+                            <div class="prediction-label">Prediction Result</div>
+                            <div class="prediction-value" id="predictionValue">Location Selected</div>
+                            <div class="prediction-text" id="predictionText">Map location updated. Press Apply to fetch predictions from the backend.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="sidebar">
+                <div class="sidebar-header">
+                    <h2 id="listingTitle">Prediction Output</h2>
+                    <div class="sort-link" id="listingSubtitle">
+                        Dallas County only. Location is chosen from the map search above, and inputs are set in the top toolbar.
+                    </div>
+                </div>
+
+                <div class="listing-scroll">
+
+                    <!-- Error banner (shown on API failure) -->
+                    <div class="error-banner" id="errorBanner"></div>
+
+                    <div class="result-card">
+                        <p class="section-title">Prediction Summary</p>
+                        <div class="result-hero">
+                            <div>
+                                <div class="hero-main" id="predictionHeroTitle">Prediction Ready</div>
+                                <div class="hero-note" id="predictionHeroNote">Search a Dallas County location, set filters, then press Apply.</div>
+                            </div>
+                        </div>
+
+                        <div class="result-grid">
+                            <div class="result-stat">
+                                <div class="result-label">Current ZHVI</div>
+                                <div class="result-value" id="currentZhvi">--</div>
+                            </div>
+                            <div class="result-stat">
+                                <div class="result-label">Target Month</div>
+                                <div class="result-value" id="targetMonthText">12/2024</div>
+                            </div>
+                            <div class="result-stat pred-3m">
+                                <div class="result-label">3-Month Prediction</div>
+                                <div class="result-value" id="threeMonthPrediction">--</div>
+                            </div>
+                            <div class="result-stat pred-6m">
+                                <div class="result-label">6-Month Prediction</div>
+                                <div class="result-value" id="sixMonthPrediction">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <p class="section-title">Market Information</p>
+                        <div class="detail-list">
+                            <div class="detail-row"><div class="detail-name">Mortgage Rate</div><div class="detail-value" id="mortgageRateDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Unemployment</div><div class="detail-value" id="unemploymentDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Median Income</div><div class="detail-value" id="medianIncomeDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Inventory</div><div class="detail-value" id="inventoryDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Sales Count</div><div class="detail-value" id="salesCountDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">New Listings</div><div class="detail-value" id="newListingsDetail">--</div></div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <p class="section-title">Additional Factors</p>
+                        <div class="detail-list">
+                            <div class="detail-row"><div class="detail-name">Average School Rating (0–100)</div><div class="detail-value" id="schoolFactorDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Violent Crime per 100k</div><div class="detail-value" id="violentCrimeDetail">--</div></div>
+                            <div class="detail-row"><div class="detail-name">Property Crime per 100k</div><div class="detail-value" id="propertyCrimeDetail">--</div></div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        /* ================================================================
+           CONFIG — update BASE_URL to match your FastAPI server
+           ================================================================
+           Local dev:   const BASE_URL = 'http://localhost:8000';
+           Deployed:    const BASE_URL = 'https://your-api-domain.com';
+           ================================================================ */
+        const BASE_URL = 'http://localhost:8000';
+
+        /* ================================================================
+           GOOGLE MAPS  — interactive ZIP boundary map
+        
+           ================================================================ */
+
+        const DALLAS_CENTER  = { lat: 32.7767, lng: -96.7970 };
+        let   gmap           = null;   // Google Map instance
+        let   zipPolygons    = {};     // zip -> google.maps.Polygon
+        let   activePolygon  = null;
+        let   knownZips      = [];
+        let   infoWindow     = null;
+
+        // Styles
+        const STYLE_DEFAULT = { strokeColor: '#2563eb', strokeWeight: 1.5, strokeOpacity: 0.7, fillColor: '#2563eb', fillOpacity: 0.07 };
+        const STYLE_HOVER   = { strokeColor: '#1d4ed8', strokeWeight: 2.5, strokeOpacity: 1,   fillColor: '#3b82f6', fillOpacity: 0.20 };
+        const STYLE_ACTIVE  = { strokeColor: '#1d4ed8', strokeWeight: 3,   strokeOpacity: 1,   fillColor: '#2563eb', fillOpacity: 0.30 };
+        const STYLE_NODATA  = { strokeColor: '#9ca3af', strokeWeight: 1,   strokeOpacity: 0.4, fillColor: '#9ca3af', fillOpacity: 0.04 };
+
+        // Called by Google Maps script tag callback
+        function initGoogleMap() {
+            gmap = new google.maps.Map(document.getElementById('googleMap'), {
+                center:            DALLAS_CENTER,
+                zoom:              10,
+                mapTypeId:         'roadmap',
+                disableDefaultUI:  false,
+                zoomControl:       true,
+                streetViewControl: false,
+                mapTypeControl:    false,
+                fullscreenControl: true,
+                styles: [
+                    { featureType: 'poi',   elementType: 'labels', stylers: [{ visibility: 'off' }] },
+                    { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+                ]
+            });
+
+            infoWindow = new google.maps.InfoWindow();
+
+            // Load ZIP list then boundaries
+            loadZipList();
+        }
+
+        async function loadZipList() {
+            try {
+                const res  = await fetch(BASE_URL + '/api/zipcodes');
+                const data = await res.json();
+                knownZips  = data.zipcodes || [];
+                await loadZipBoundaries();
+            } catch(e) {
+                console.warn('[Map] Could not load ZIP list:', e);
+            }
+        }
+
+        async function loadZipBoundaries() {
+            // Census TIGERweb — query ZIP polygons within Dallas County bounding box
+            const bbox = '-97.25,32.45,-96.25,33.10';
+            const url  = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/2/query' +
+                '?where=1%3D1' +
+                '&outFields=ZCTA5' +
+                '&f=geojson' +
+                '&returnGeometry=true' +
+                '&geometryType=esriGeometryEnvelope' +
+                '&spatialRel=esriSpatialRelIntersects' +
+                '&inSR=4326&outSR=4326' +
+                '&geometry=' + encodeURIComponent(JSON.stringify({
+                    xmin: -97.25, ymin: 32.45, xmax: -96.25, ymax: 33.10,
+                    spatialReference: { wkid: 4326 }
+                }));
+
+            try {
+                const res  = await fetch(url);
+                const geoj = await res.json();
+                renderGooglePolygons(geoj);
+            } catch(e) {
+                console.warn('[Map] Boundary fetch failed:', e);
+            }
+        }
+
+        function geojsonCoordsToLatLng(coords) {
+            // GeoJSON coords are [lng, lat] — Google wants {lat, lng}
+            return coords.map(ring =>
+                ring.map(pt => ({ lat: pt[1], lng: pt[0] }))
+            );
+        }
+
+        function renderGooglePolygons(geojson) {
+            if (!geojson || !geojson.features) return;
+
+            geojson.features.forEach(feat => {
+                const zip      = feat.properties && feat.properties.ZCTA5;
+                if (!zip) return;
+
+                const inDataset = knownZips.includes(zip);
+                const geom      = feat.geometry;
+                if (!geom) return;
+
+                let paths = [];
+
+                if (geom.type === 'Polygon') {
+                    paths = geojsonCoordsToLatLng(geom.coordinates);
+                } else if (geom.type === 'MultiPolygon') {
+                    geom.coordinates.forEach(poly => {
+                        paths = paths.concat(geojsonCoordsToLatLng(poly));
+                    });
+                } else {
+                    return;
+                }
+
+                const style   = inDataset ? STYLE_DEFAULT : STYLE_NODATA;
+                const polygon = new google.maps.Polygon({
+                    paths,
+                    map:              gmap,
+                    strokeColor:      style.strokeColor,
+                    strokeWeight:     style.strokeWeight,
+                    strokeOpacity:    style.strokeOpacity,
+                    fillColor:        style.fillColor,
+                    fillOpacity:      style.fillOpacity,
+                    clickable:        inDataset,
+                    zIndex:           1
+                });
+
+                // Hover
+                polygon.addListener('mouseover', e => {
+                    if (zip !== currentZipcode) applyPolygonStyle(polygon, STYLE_HOVER);
+                    // tooltip removed — no popup on hover
+                });
+
+                polygon.addListener('mouseout', () => {
+                    if (zip !== currentZipcode) {
+                        applyPolygonStyle(polygon, inDataset ? STYLE_DEFAULT : STYLE_NODATA);
+                    }
+                });
+
+                // Click
+                polygon.addListener('click', () => {
+                    if (!inDataset) return;
+                    selectZipFromMap(zip, polygon);
+                });
+
+                zipPolygons[zip] = { polygon, inDataset };
+            });
+        }
+
+        function applyPolygonStyle(polygon, style) {
+            polygon.setOptions({
+                strokeColor:   style.strokeColor,
+                strokeWeight:  style.strokeWeight,
+                strokeOpacity: style.strokeOpacity,
+                fillColor:     style.fillColor,
+                fillOpacity:   style.fillOpacity
+            });
+        }
+
+        function selectZipFromMap(zip, polygon) {
+            // Reset previous active polygon
+            if (activePolygon && activePolygon !== polygon) {
+                const prev = Object.values(zipPolygons).find(v => v.polygon === activePolygon);
+                if (prev) applyPolygonStyle(activePolygon, prev.inDataset ? STYLE_DEFAULT : STYLE_NODATA);
+            }
+
+            activePolygon = polygon;
+            applyPolygonStyle(polygon, STYLE_ACTIVE);
+
+            // Update state + search box
+            currentZipcode       = zip;
+            currentLocationTitle = 'ZIP ' + zip;
+            searchInput.value    = zip;
+            updateClearButton();
+            // Reset panels and auto-fetch predictions
+            resetPanels('ZIP ' + zip);
+            runPrediction();
+        }
+
+        function highlightZipOnMap(zip) {
+            if (!zip || !zipPolygons[zip]) return;
+            const { polygon } = zipPolygons[zip];
+            selectZipFromMap(zip, polygon);
+            // Pan to center of ZIP
+            const bounds = new google.maps.LatLngBounds();
+            polygon.getPaths().forEach(path => path.forEach(pt => bounds.extend(pt)));
+            gmap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+        }
+
+
+        /* ── DOM refs ── */
+        const searchInput       = document.getElementById('searchInput');
+        const searchBtn         = document.getElementById('searchBtn');
+        const clearBtn          = document.getElementById('clearBtn');
+        const searchSuggestions = document.getElementById('searchSuggestions');
+        const applyBtn          = document.getElementById('applyBtn');
+        const yearSelect        = document.getElementById('yearSelect');
+        const monthSelect       = document.getElementById('monthSelect');
+        const targetMonthText   = document.getElementById('targetMonthText');
+        const dataPill          = document.getElementById('dataPill');
+        const errorBanner       = document.getElementById('errorBanner');
+
+        let debounceTimer        = null;
+        let suggestionItems      = [];
+        let activeSuggestionIndex = -1;
+        let currentZipcode       = null;   // last resolved ZIP (if any)
+        let currentLocationTitle = 'Dallas';
+
+        /* ================================================================
+           UTILITIES
+           ================================================================ */
+        function toTitleCase(text) {
+            return text.toLowerCase().split(' ').filter(Boolean)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function fallbackTitle(query) {
+            return toTitleCase(query.split(',')[0].trim() || 'Selected Area');
+        }
+
+        function fmt$$(value) {
+            if (value == null || isNaN(value)) return '--';
+            return '$' + Math.round(value).toLocaleString('en-US');
+        }
+
+        function fmtPct(value) {
+            if (value == null || isNaN(value)) return '--';
+            return (value >= 0 ? '+' : '') + Number(value).toFixed(2) + '%';
+        }
+
+        function fmtNum(value, decimals = 0) {
+            if (value == null || isNaN(value)) return '--';
+            return Number(value).toFixed(decimals);
+        }
+
+        function showError(msg) {
+            errorBanner.textContent = msg;
+            errorBanner.classList.add('show');
+        }
+
+        function hideError() {
+            errorBanner.classList.remove('show');
+        }
+
+        function setLoading(on) {
+            applyBtn.disabled = on;
+            applyBtn.textContent = on ? 'Loading…' : 'Apply';
+            dataPill.textContent = on ? 'Loading…' : 'Live Panel';
+            dataPill.classList.toggle('loading', on);
+        }
+
+        /* ================================================================
+           UI PANEL UPDATES
+           ================================================================ */
+        function updateClearButton() {
+            if (!clearBtn) return;
+            clearBtn.classList.toggle('hidden', !searchInput.value.trim());
+        }
+
+        const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        function updateTargetMonthText() {
+            if (targetMonthText && yearSelect && monthSelect) {
+                const monthName = MONTH_NAMES[parseInt(monthSelect.value) - 1];
+                targetMonthText.textContent = monthName + ' ' + yearSelect.value;
+            }
+        }
+
+        function resetPanels(title) {
+            currentLocationTitle = title;
+            document.getElementById('dataTitle').textContent      = title + ' Data';
+            document.getElementById('listingTitle').textContent   = 'Prediction Output';
+            document.getElementById('listingSubtitle').textContent =
+                'Dallas County only. Current selected area: ' + title + '.';
+            document.getElementById('predictionHeroTitle').textContent = title + ' Prediction';
+            document.getElementById('predictionHeroNote').textContent  =
+                'Press Apply to run predictions for ' + title + '.';
+
+            const dashIds = [
+                'medianPrice','growthRate','schoolRating','crimeLevel',
+                'currentZhvi','threeMonthPrediction','sixMonthPrediction',
+                'mortgageRateDetail','unemploymentDetail','medianIncomeDetail',
+                'inventoryDetail','salesCountDetail','newListingsDetail',
+                'schoolFactorDetail','violentCrimeDetail','propertyCrimeDetail'
+            ];
+            dashIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '--';
+            });
+
+            document.getElementById('predictionValue').textContent = 'Location Selected';
+            document.getElementById('predictionText').textContent  =
+                'Map is now showing ' + title + '. Press Apply to fetch predictions.';
+        }
+
+        /* ================================================================
+           FASTAPI INTEGRATION  (branch: kenya/api-backend)
+           ================================================================
+           All endpoints are GET requests — no request body needed.
+
+           GET /api/predictions/{zipcode}
+               → { prediction_3mo, prediction_6mo, ... }
+
+           GET /api/market/{zipcode}
+               → full market snapshot (mortgage, unemployment, income, etc.)
+
+           GET /api/market/{zipcode}/latest
+               → most recent single data point
+
+           GET /api/zhvi/{zipcode}
+               → historical home values
+
+           Run the server with:
+               cd proj_experimental_model_test
+               uvicorn api.main:app --reload --port 8000
+
+           Serve this HTML from port 5173 so CORS passes:
+               python -m http.server 5173
+           ================================================================ */
+
+        async function apiGet(path) {
+            const response = await fetch(BASE_URL + path);
+            if (!response.ok) {
+                const errText = await response.text().catch(() => '');
+                throw new Error('API ' + response.status + (errText ? ': ' + errText : ''));
+            }
+            return await response.json();
+        }
+
+        function applyPredictionData(predictions, market, title) {
+            hideError();
+
+            /* predictions  → GET /api/predictions/{zipcode}
+               Actual response shape:
+               {
+                 current_zhvi, prediction_3m, prediction_6m,
+                 pct_change_3m, pct_change_6m,
+                 market_information: { mortgage_rate, unemployment_rate,
+                                       median_income, inventory,
+                                       sales_count, new_listings },
+                 additional_factors: { school_rating_mean,
+                                       violent_offenses_per_100k,
+                                       property_offenses_per_100k }
+               } */
+            const mi           = predictions.market_information ?? {};
+            const af           = predictions.additional_factors  ?? {};
+
+            const currentZhvi  = predictions.current_zhvi ?? null;
+            const pred3        = predictions.prediction_3m ?? null;
+            const pred6        = predictions.prediction_6m ?? null;
+            const growthRate   = predictions.pct_change_3m ?? null;
+            const mortgageRate = mi.mortgage_rate          ?? null;
+            const unemployment = mi.unemployment_rate      ?? null;
+            const medianIncome = mi.median_income          ?? null;
+            const inventory    = mi.inventory              ?? null;
+            const salesCount   = mi.sales_count            ?? null;
+            const newListings  = mi.new_listings           ?? null;
+            const schoolRating = af.school_rating_mean     ?? null;
+            const violentCrime = af.violent_offenses_per_100k  ?? null;
+            const propCrime    = af.property_offenses_per_100k ?? null;
+
+            /* ── Map-overlay data card ── */
+            document.getElementById('medianPrice').textContent   = fmt$$(currentZhvi);
+            document.getElementById('growthRate').textContent    = fmtPct(growthRate);
+            document.getElementById('schoolRating').textContent  = fmtNum(schoolRating, 1);
+            document.getElementById('crimeLevel').textContent    = fmtNum(violentCrime, 1);
+
+            document.getElementById('predictionValue').textContent =
+                pred3 != null ? fmt$$(pred3) : 'Pending';
+            document.getElementById('predictionText').textContent =
+                pred3 != null
+                    ? '3-month forecast for ' + title + '. See sidebar for full details.'
+                    : 'Prediction returned no value for this location.';
+
+            /* ── Sidebar summary card ── */
+            document.getElementById('predictionHeroTitle').textContent = title + ' Prediction';
+            document.getElementById('predictionHeroNote').textContent  =
+                'Predictions updated for ' + monthSelect.value + '/' + yearSelect.value + '.';
+
+            document.getElementById('currentZhvi').textContent          = fmt$$(currentZhvi);
+            document.getElementById('threeMonthPrediction').textContent  = fmt$$(pred3);
+            document.getElementById('sixMonthPrediction').textContent    = fmt$$(pred6);
+
+            /* ── Market information card ── */
+            document.getElementById('mortgageRateDetail').textContent =
+                mortgageRate != null ? fmtNum(mortgageRate, 2) + '%' : '--';
+            document.getElementById('unemploymentDetail').textContent  =
+                unemployment != null ? fmtNum(unemployment, 1) + '%' : '--';
+            document.getElementById('medianIncomeDetail').textContent  = fmt$$(medianIncome);
+            document.getElementById('inventoryDetail').textContent     =
+                inventory != null ? Math.round(inventory).toLocaleString() : '--';
+            document.getElementById('salesCountDetail').textContent    =
+                salesCount != null ? Math.round(salesCount).toLocaleString() : '--';
+            document.getElementById('newListingsDetail').textContent   =
+                newListings != null ? Math.round(newListings).toLocaleString() : '--';
+
+            /* ── Additional factors card ── */
+            document.getElementById('schoolFactorDetail').textContent  = fmtNum(schoolRating, 1);
+            document.getElementById('violentCrimeDetail').textContent  = fmtNum(violentCrime, 1);
+            document.getElementById('propertyCrimeDetail').textContent = fmtNum(propCrime, 1);
+
+            dataPill.textContent = 'Live';
+            dataPill.classList.remove('loading');
+        }
+
+        async function runPrediction() {
+            const zip = currentZipcode;
+            if (!zip) {
+                showError('No ZIP code resolved. Try searching a specific Dallas ZIP (e.g. 75201).');
+                return;
+            }
+
+            setLoading(true);
+            hideError();
+
+            const year  = yearSelect.value;
+            const month = monthSelect.value;
+
+            try {
+                /* Pass year + month as query params */
+                const predPath = '/api/predictions/' + zip + '?year=' + year + '&month=' + month;
+                const mktPath  = '/api/market/' + zip + '/latest';
+
+                const [predictions, market] = await Promise.all([
+                    apiGet(predPath),
+                    apiGet(mktPath).catch(() => null)
+                ]);
+                applyPredictionData(predictions, market, currentLocationTitle);
+            } catch (err) {
+                /* Friendly message when selected year/month has no data */
+                if (err.message.includes('404') || err.message.toLowerCase().includes('no data')) {
+                    showError(
+                        'No data available for ZIP ' + zip + ' in ' + month + '/' + year + '. ' +
+                        'Try a different year/month — data currently runs through 2024/12.'
+                    );
+                } else {
+                    showError(
+                        'Cannot reach the API at ' + BASE_URL + '. ' +
+                        'Make sure the server is running (uvicorn api.main:app --reload --port 8000) ' +
+                        'and you are serving this file from port 5173. (' + err.message + ')'
+                    );
+                }
+                console.error('[API]', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /* ================================================================
+           SEARCH / NOMINATIM
+           ================================================================ */
+        function extractBestTitle(item, query) {
+            if (!item) return fallbackTitle(query);
+            const addr = item.address || {};
+            const best = addr.city || addr.town || addr.village || addr.county || addr.state || item.name || query;
+            return toTitleCase(String(best).trim());
+        }
+
+        function extractZipcode(item) {
+            return (item && item.address && item.address.postcode)
+                ? item.address.postcode.replace(/\D/g, '').slice(0, 5)
+                : null;
+        }
+
+        function clearSuggestions() {
+            searchSuggestions.innerHTML  = '';
+            searchSuggestions.classList.remove('show');
+            suggestionItems       = [];
+            activeSuggestionIndex = -1;
+        }
+
+        function renderSuggestions(results) {
+            if (!results || !results.length) { clearSuggestions(); return; }
+
+            suggestionItems       = results;
+            activeSuggestionIndex = -1;
+
+            searchSuggestions.innerHTML = results.map(function(item, index) {
+                const addr = item.address || {};
+                const main = extractBestTitle(item, item.display_name || '');
+                const subParts = [
+                    addr.house_number && addr.road ? addr.house_number + ' ' + addr.road : addr.road,
+                    addr.suburb || addr.neighbourhood,
+                    addr.city || addr.town || addr.village,
+                    addr.state,
+                    addr.country
+                ].filter(Boolean);
+                const sub     = subParts.join(', ') || item.display_name || '';
+                const zipBadge = addr.postcode
+                    ? '<div class="suggestion-zip">ZIP ' + addr.postcode + '</div>'
+                    : '';
+                return '<button class="suggestion-item" data-index="' + index + '">' +
+                    '<span class="suggestion-icon">📍</span>' +
+                    '<span>' +
+                    '<div class="suggestion-main">' + main + '</div>' +
+                    '<div class="suggestion-sub">' + sub + '</div>' +
+                    zipBadge +
+                    '</span>' +
+                    '</button>';
+            }).join('');
+
+            searchSuggestions.classList.add('show');
+
+            searchSuggestions.querySelectorAll('.suggestion-item').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const idx  = Number(btn.getAttribute('data-index'));
+                    const item = suggestionItems[idx];
+                    if (item) {
+                        applyResolvedLocation({
+                            found:    true,
+                            title:    extractBestTitle(item, item.display_name || searchInput.value),
+                            query:    item.display_name || searchInput.value,
+                            zipcode:  extractZipcode(item)
+                        });
+                    }
+                });
+            });
+        }
+
+        async function fetchSuggestions(query) {
+            const normalized = query.trim();
+            const compact    = normalized.replace(/[-\s]/g, '');
+            const isZipLike  = /^\d{3,10}$/.test(compact);
+            const effective  = isZipLike ? normalized + ', USA' : normalized;
+            const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&q=' +
+                encodeURIComponent(effective);
+            const res = await fetch(url, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error('Suggestion search failed');
+            return await res.json();
+        }
+
+        async function resolveLocationName(query) {
+            const normalized = query.trim();
+            const compact    = normalized.replace(/[-\s]/g, '');
+            const isZipLike  = /^\d{3,10}$/.test(compact);
+            const effective  = isZipLike ? normalized + ', USA' : normalized;
+            const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=' +
+                encodeURIComponent(effective);
+            try {
+                const res = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!res.ok) throw new Error('Search failed');
+                const results = await res.json();
+                if (!results || !results.length) {
+                    return { found: false, title: fallbackTitle(query), query, zipcode: null };
+                }
+                const first = results[0];
+                return {
+                    found:   true,
+                    title:   extractBestTitle(first, query),
+                    query:   first.display_name || query,
+                    zipcode: extractZipcode(first),
+                    lat:     parseFloat(first.lat),
+                    lon:     parseFloat(first.lon)
+                };
+            } catch {
+                return { found: false, title: fallbackTitle(query), query, zipcode: null };
+            }
+        }
+
+        function applyResolvedLocation(resolved) {
+            searchInput.value    = resolved.title;
+            currentZipcode       = resolved.zipcode || null;
+            currentLocationTitle = resolved.title;
+            updateClearButton();
+            resetPanels(resolved.title);
+            clearSuggestions();
+            // Highlight ZIP boundary on map if we have a ZIP
+            if (resolved.zipcode) {
+                highlightZipOnMap(resolved.zipcode);
+            } else {
+                // Pan map to the searched location
+                try {
+                    const coords = resolved.lat && resolved.lon
+                        ? [resolved.lat, resolved.lon]
+                        : DALLAS_CENTER;
+                    map.setView(coords, 12);
+                } catch {}
+            }
+        }
+
+        async function updateMap() {
+            const rawQuery = searchInput.value.trim();
+            if (!rawQuery) return;
+            const resolved = await resolveLocationName(rawQuery);
+            applyResolvedLocation(resolved);
+        }
+
+        /* ================================================================
+           EVENT LISTENERS
+           ================================================================ */
+        applyBtn.addEventListener('click', runPrediction);
+
+        searchBtn.addEventListener('click', updateMap);
+
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            updateClearButton();
+            clearSuggestions();
+            searchInput.focus();
+        });
+
+        searchInput.addEventListener('input', function() {
+            updateClearButton();
+            const query = searchInput.value.trim();
+            clearTimeout(debounceTimer);
+            if (query.length < 2) { clearSuggestions(); return; }
+            debounceTimer = setTimeout(async function() {
+                try {
+                    const results = await fetchSuggestions(query);
+                    renderSuggestions(results);
+                } catch { clearSuggestions(); }
+            }, 250);
+        });
+
+        searchInput.addEventListener('keydown', function(event) {
+            const buttons = Array.from(searchSuggestions.querySelectorAll('.suggestion-item'));
+            if (event.key === 'ArrowDown' && buttons.length) {
+                event.preventDefault();
+                activeSuggestionIndex = (activeSuggestionIndex + 1) % buttons.length;
+                buttons.forEach((btn, i) => btn.classList.toggle('active', i === activeSuggestionIndex));
+            } else if (event.key === 'ArrowUp' && buttons.length) {
+                event.preventDefault();
+                activeSuggestionIndex = (activeSuggestionIndex - 1 + buttons.length) % buttons.length;
+                buttons.forEach((btn, i) => btn.classList.toggle('active', i === activeSuggestionIndex));
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                if (activeSuggestionIndex >= 0 && buttons[activeSuggestionIndex]) {
+                    buttons[activeSuggestionIndex].click();
+                } else {
+                    updateMap();
+                }
+            } else if (event.key === 'Escape') {
+                clearSuggestions();
+            }
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!searchSuggestions.contains(event.target) &&
+                event.target !== searchInput &&
+                event.target !== clearBtn &&
+                event.target !== searchBtn) {
+                clearSuggestions();
+            }
+        });
+
+        yearSelect.addEventListener('change',  updateTargetMonthText);
+        monthSelect.addEventListener('change', updateTargetMonthText);
+
+        /* ── Init ── */
+        resetPanels('Dallas');
+        updateTargetMonthText();
+        updateClearButton();
+        initMap();
+    </script>
+</body>
+</html>
