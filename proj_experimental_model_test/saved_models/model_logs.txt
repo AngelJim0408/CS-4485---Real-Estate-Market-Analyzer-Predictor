@@ -1,5 +1,6 @@
 
 ---------------------
+<<<<<<< HEAD
 -- target_zhvi_3m Testing Evaluation --
 MAE: $12,365
 RMSE:  $35,253
@@ -19,10 +20,103 @@ R^2 score:   0.985
 total_offenses_per_100k  0.000084
             sales_count  0.000051
            new_listings  0.000041
+=======
+-- target_zhvi_3m_pct Testing Evaluation --
+MAE: 1.3009%
+RMSE:  1.6814%
+Directional Accuracy: 0.563
+R^2 score:   0.553
+---------------------
+-- Top 20 features --
+                      feature  pct_infl
+          mortgage_rate_lag3m  0.403384
+           zhvi_pct_change_1m  0.237981
+      unemployment_rate_lag3m  0.061201
+          mortgage_rate_lag1m  0.026611
+                mortgage_rate  0.026390
+unemployment_rate_yoy_percent  0.017463
+             zhvi_yoy_percent  0.017389
+            unemployment_rate  0.014946
+                    month_cos  0.013899
+    mortgage_rate_roll3m_mean  0.013459
+unemployment_rate_roll3m_mean  0.012315
+      unemployment_rate_lag1m  0.011410
+                   zhvi_lag1m  0.011180
+           violent_clearances  0.010935
+                   zhvi_lag6m  0.009817
+              zhvi_roll3m_std  0.008390
+                   zhvi_lag3m  0.007747
+             price_to_violent  0.006558
+             zhvi_roll6m_mean  0.006346
+              zhvi_roll6m_std  0.006149
+---------------------
+
+---------------------
+-- target_zhvi_6m_pct Testing Evaluation --
+MAE: 2.1314%
+RMSE:  2.7273%
+Directional Accuracy: 0.505
+R^2 score:   0.461
+---------------------
+-- Top 20 features --
+                      feature  pct_infl
+          mortgage_rate_lag3m  0.191316
+                mortgage_rate  0.134947
+    mortgage_rate_roll3m_mean  0.114396
+          mortgage_rate_lag1m  0.097712
+                   zhvi_lag6m  0.076250
+unemployment_rate_yoy_percent  0.054572
+unemployment_rate_roll3m_mean  0.049293
+      unemployment_rate_lag1m  0.040974
+            unemployment_rate  0.039471
+           zhvi_pct_change_1m  0.026690
+             zhvi_yoy_percent  0.019247
+                   zhvi_lag3m  0.012910
+                   zhvi_lag1m  0.012146
+             price_to_violent  0.011172
+             zhvi_roll6m_mean  0.008935
+                median_income  0.008189
+             zhvi_roll3m_mean  0.006039
+           violent_clearances  0.005485
+       mortgage_affordability  0.005465
+                    month_cos  0.005271
+---------------------
+
+---------------------
+-- target_zhvi_3m Testing Evaluation --
+MAE: $16,481
+RMSE:  $57,033
+MAPE: 2.3556%
+R^2 score:   0.963
+---------------------
+-- Top 20 features --
+                  feature  pct_infl
+               zhvi_lag1m  0.847724
+         zhvi_roll3m_mean  0.043494
+         zhvi_roll6m_mean  0.036301
+               zhvi_lag6m  0.031534
+               zhvi_lag3m  0.021721
+    price_to_income_ratio  0.007740
+                inventory  0.003226
+          inventory_lag1m  0.001426
+          inventory_lag6m  0.001012
+    inventory_roll3m_mean  0.000777
+       zhvi_pct_change_1m  0.000717
+    inventory_roll6m_mean  0.000617
+      mortgage_rate_lag3m  0.000411
+         zhvi_yoy_percent  0.000401
+            median_income  0.000318
+          inventory_lag3m  0.000232
+       zhvi_pct_change_3m  0.000208
+   mortgage_affordability  0.000186
+  sales_count_roll6m_mean  0.000166
+mortgage_rate_roll3m_mean  0.000140
+>>>>>>> main
 ---------------------
 
 ---------------------
 -- target_zhvi_6m Testing Evaluation --
+<<<<<<< HEAD
 MAE: $15,615
 RMSE:  $38,972
 MAPE: 2.96%
@@ -41,4 +135,33 @@ R^2 score:   0.982
 total_offenses_per_100k  0.000143
             sales_count  0.000133
            new_listings  0.000066
+=======
+MAE: $19,707
+RMSE:  $56,010
+MAPE: 3.2203%
+R^2 score:   0.965
+---------------------
+-- Top 20 features --
+                  feature  pct_infl
+               zhvi_lag1m  0.759516
+         zhvi_roll6m_mean  0.075238
+         zhvi_roll3m_mean  0.065764
+               zhvi_lag6m  0.056205
+               zhvi_lag3m  0.026597
+    price_to_income_ratio  0.004544
+      mortgage_rate_lag3m  0.002227
+            median_income  0.001385
+         zhvi_yoy_percent  0.001021
+          inventory_lag3m  0.000904
+    inventory_roll6m_mean  0.000877
+    inventory_roll3m_mean  0.000630
+mortgage_rate_roll3m_mean  0.000594
+          inventory_lag6m  0.000497
+       zhvi_pct_change_1m  0.000450
+      mortgage_rate_lag1m  0.000309
+                inventory  0.000305
+         months_of_supply  0.000223
+          inventory_lag1m  0.000196
+  unemployment_rate_lag3m  0.000195
+>>>>>>> main
 ---------------------

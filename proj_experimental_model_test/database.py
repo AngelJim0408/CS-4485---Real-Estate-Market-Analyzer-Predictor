@@ -306,7 +306,6 @@ class RealEstateDB:
         )
 
 
-
     def table_summary(self):
         """Print row counts for every table."""
         tables = [row[0] for row in

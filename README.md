@@ -9,6 +9,7 @@ Additional Needs:
 - pip install python-dotenv
 - pip install requests
 - pip install openpyxl
+- pip install -U scikit-learn
 
 [Google Drive Folder for data_raw folder](https://drive.google.com/drive/folders/1seUFRsYqhGi5qOp8wu10wKWhvJhGiJOq?usp=sharing)
 

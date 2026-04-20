@@ -60,6 +60,9 @@ if __name__ == "__main__":
                 data_class.load_data()
                 print("Data finished loading.")
 
+                data_class.load_data()
+
+                print("Data finished loading.")
             case '2':
                 if data_class.zhvi_df is None:
                     print("No raw data loaded. Run option 1 first.")
@@ -81,6 +84,7 @@ if __name__ == "__main__":
                     data_class.build_features()
                     print("Features built. Master DataFrame saved to database.")
 
+            # model commands
             case '5':
                 if data_class.master_df is None:
                     # check if we can get master dataframe first.
@@ -179,8 +183,97 @@ if __name__ == "__main__":
                         )
                     print(x_train.head())
 
+                    model = mo.train_model(x_train,y_train) 
+
+                    models_trained[target] = model
+                    feature_split[target] = (x_train, x_test, y_train, y_test)
+
+                    print("---")
+                    # results = mo.eval_model(model, x_train, y_train, target, "Training")
+                    # mo.write_log(model_log_path, results)
+                    results = mo.eval_model(model, x_test, y_test, target, "Testing")
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    results = mo.feature_analyze(model, x_train.columns.tolist())
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    mo.save_model(model, models_path / f"{target}_rf_model.joblib")
+
+                print(f"All models trained and saved to '{models_path}'.")
+
+            case '6':
+                # Load Model from path 
+                targets = ['target_zhvi_3m_pct','target_zhvi_6m_pct','target_zhvi_3m','target_zhvi_6m']
+                for target in targets:
+                    model_path = models_path / f"{target}_rf_model.joblib"
+                    if model_path.exists():
+                        models_trained[target] = mo.load_model(model_path)
+                        print(f"Loaded: {target}")
+                    else:
+                        print(f"Not found: {target} — train first with option 5")
+
+                print("Models loaded.")
+
+            case '7':
+                # Evaluate models
+                if not models_trained:
+                    print("No trained models, train models first or load from memory (5 or 6)")
+                else:
+                    for target, model in models_trained.items():
+                        if target in feature_split:
+                            x_train, x_test, y_train, y_test = feature_split[target]
+                        else:
+                            x_train, x_test, y_train, y_test = data_class.get_model_inputs(target_str=target)
+                            feature_split[target] = (x_train, x_test, y_train, y_test)
+
+                        mo.eval_model(model, x_test, y_test, target)
+                        mo.feature_analyze(model, x_train.columns.tolist())
+                        
+
+            case '8':
+                # TODO: Tune Models
+                # Train models, put in models_trained
+                target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct','target_zhvi_3m','target_zhvi_6m']
+                mo.clear_log(model_log_path)
+                ## train for all of the above
+                for target in target_names:
+                    print(f"Training for {target}.")
+                    x_train, x_test, y_train, y_test = data_class.get_model_inputs(target, target_cutoffs[target])
+
+                    if target_names=='target_zhvi_3m_pct' or target_names=='target_zhvi_6m_pct':
+                        model, params = mo.tune_model(x_train,y_train,param_type="pct")
+                    else:
+                        model, params = mo.tune_model(x_train,y_train,param_type="abs")
+
+                    models_trained[target] = model
+                    feature_split[target] = (x_train, x_test, y_train, y_test)
+
+                    print("---")
+                    results = mo.eval_model(model, x_train, y_train, target, "Training")
+                    mo.write_log(model_log_path, results)
+                    results = mo.eval_model(model, x_test, y_test, target, "Testing")
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    results = mo.feature_analyze(model, x_train.columns.tolist())
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    mo.save_model(model, models_path / f"{target}_rf_model.joblib")
+
+                print(f"All models trained and saved to '{models_path}'.")    
+
+            case '9':
+                # Get Redfin data for debug purpose
+                df_redfin = ds.get_redfin()     
+                print(df_redfin.columns.tolist())      
+                print(df_redfin.head())
+            case '10':
+                # print split heads
+                target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct','target_zhvi_3m','target_zhvi_6m']
+                for target in target_names:
+                    x_train, x_test, y_train, y_test = data_class.get_model_inputs(target, target_cutoffs[target])
+                print(x_train.head())
             case 'q':
                 print("Quitting Program.")
                 ds.db.close()
 
-        print("__________________________________________\n*")
+        print("__________________________________________\n*" )

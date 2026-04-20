@@ -212,6 +212,17 @@ def _clean_zillow_supply(df: pd.DataFrame) -> pd.DataFrame:
         df.rename(columns={'RegionName': 'msa'}, inplace=True)
     return df
 
+def pull_redfin_zip(cols, dmap):
+    """
+    read from redfin website for supply/demand info
+    WARNING: LARGE FILE SIZE
+    """
+    target_path = main_path / "data_raw/supply_demand/zip_code_market_tracker.tsv000.gz"
+    url = "https://redfin-public-data.s3.us-west-2.amazonaws.com/redfin_market_tracker/zip_code_market_tracker.tsv000.gz"
+    writeWebToLocal(url, target_path, True)
+
+    return pd.read_csv(target_path, sep='\t', compression='gzip', usecols=cols, dtype=dmap,chunksize=200_000, low_memory=True)
+
 def get_zillow_supply(type):
     """
     Raw DB tables: zillow_raw_sales_count | zillow_raw_rent |
