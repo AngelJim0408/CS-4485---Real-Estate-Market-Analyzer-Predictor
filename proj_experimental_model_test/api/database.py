@@ -66,7 +66,7 @@ class DatabaseManager:
 
     def get_feature_row(self, zipcode: str, year: int = None, month: int = None) -> dict | None:
         """
-        Get a row from the feature_vectors table for predictions.
+        Get a row from the (master table) for predictions.
         If year/month provided, get that specific row.
         Otherwise, get the most recent row.
         """
@@ -74,20 +74,20 @@ class DatabaseManager:
 
         if year is not None and month is not None:
             rows = self.query(
-                "SELECT * FROM feature_vectors WHERE zipcode = ? AND year = ? AND month = ? LIMIT 1",
+                "SELECT * FROM master WHERE zipcode = ? AND year = ? AND month = ? LIMIT 1",
                 (zipcode, year, month),
             )
         else:
             rows = self.query(
-                "SELECT * FROM feature_vectors WHERE zipcode = ? ORDER BY year DESC, month DESC LIMIT 1",
+                "SELECT * FROM master WHERE zipcode = ? ORDER BY year DESC, month DESC LIMIT 1",
                 (zipcode,),
             )
         return rows[0] if rows else None
 
-    def has_feature_vectors(self) -> bool:
-        """Check if the feature_vectors table exists and has data."""
+    def has_master(self) -> bool:
+        """Check if the master table exists and has data."""
         try:
-            result = self.query("SELECT COUNT(*) as cnt FROM feature_vectors")
+            result = self.query("SELECT COUNT(*) as cnt FROM master")
             return result[0]["cnt"] > 0
         except Exception:
             return False
