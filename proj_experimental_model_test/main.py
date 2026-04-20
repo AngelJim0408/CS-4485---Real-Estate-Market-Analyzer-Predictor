@@ -18,8 +18,6 @@ if __name__ == "__main__":
     model_log_path = main_path / "saved_models/model_logs.txt"
 
     target_cutoffs = {
-        'target_zhvi_3m_pct': 2022,
-        'target_zhvi_6m_pct': 2022,
         'target_zhvi_3m':     2023,
         'target_zhvi_6m':     2023,
     }
@@ -143,8 +141,7 @@ if __name__ == "__main__":
                 if data_class.master_df is None:
                     print("No master DataFrame. Run option 4 first.")
                 else:
-                    target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct',
-                                    'target_zhvi_3m','target_zhvi_6m']
+                    target_names = ['target_zhvi_3m','target_zhvi_6m']
                     mo.clear_log(model_log_path)
 
                     for target in target_names:
