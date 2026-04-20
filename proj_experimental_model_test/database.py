@@ -205,7 +205,7 @@ class RealEstateDB:
     # Loading helpers
     # ------------------------------------------------------------------
 
-    def _upsert_df(self, df: pd.DataFrame, table: str):
+    def _upsert_df(self, df: pd.DataFrame, table: str, if_exists: str="replace"):
         """
         Writes a DataFrame into the given table using INSERT OR REPLACE
         so re-running never causes duplicate-key errors.
@@ -221,7 +221,7 @@ class RealEstateDB:
             df["zipcode"] = df["zipcode"].astype(str).str.zfill(5)
 
         row_count = len(df)
-        df.to_sql(table, self.conn, if_exists="replace", index=False,
+        df.to_sql(table, self.conn, if_exists=if_exists, index=False,
                   method="multi", chunksize=500)
         self.conn.commit()
         print(f"[DB] {table:25s} → {row_count:,} rows written.")

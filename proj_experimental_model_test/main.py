@@ -10,7 +10,7 @@ from RealEstateData import RealEstateDataClass
 
 if __name__ == "__main__":
     user_input = 0
-    data_class = RealEstateDataClass(ds, dn, de, year_earliest=2015)
+    data_class = RealEstateDataClass(ds, dn, de, year_earliest=2011)
     current_file_path = Path(__file__).resolve()
     main_path   = current_file_path.parent
     models_path = main_path / "saved_models"
@@ -87,8 +87,8 @@ if __name__ == "__main__":
                 if data_class.master_df is None:
                     print("No master DataFrame. Run option 4 first.")
                 else:
-                    target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct',
-                                    'target_zhvi_3m','target_zhvi_6m']
+                    # # Train models, put in models_trained (dont use pct for now ['target_zhvi_3m_pct','target_zhvi_6m_pct'])
+                    target_names = ['target_zhvi_3m','target_zhvi_6m']
                     mo.clear_log(model_log_path)
 
                     for target in target_names:
@@ -112,8 +112,8 @@ if __name__ == "__main__":
                     print(f"All models trained and saved to '{models_path}'.")
 
             case '6':
-                targets = ['target_zhvi_3m_pct','target_zhvi_6m_pct',
-                           'target_zhvi_3m','target_zhvi_6m']
+                # Load Model from path (don't use for now -> ['target_zhvi_3m_pct','target_zhvi_6m_pct'])
+                targets = ['target_zhvi_3m','target_zhvi_6m']
                 for target in targets:
                     model_path = models_path / f"{target}_rf_model.joblib"
                     if model_path.exists():
@@ -172,8 +172,7 @@ if __name__ == "__main__":
                 if data_class.master_df is None:
                     print("No master DataFrame. Run option 4 first.")
                 else:
-                    target_names = ['target_zhvi_3m_pct','target_zhvi_6m_pct',
-                                    'target_zhvi_3m','target_zhvi_6m']
+                    target_names = ['target_zhvi_3m','target_zhvi_6m']
                     for target in target_names:
                         x_train, x_test, y_train, y_test = data_class.get_model_inputs(
                             target, target_cutoffs[target]

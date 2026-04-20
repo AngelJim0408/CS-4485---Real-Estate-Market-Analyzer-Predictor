@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from database import RealEstateDB
 
-load_dotenv("key.env")
+load_dotenv()
 
 ACS_LATEST_YEAR    = 2024
 DALLAS_COUNTY_GEOID = 48113
@@ -81,9 +81,9 @@ def _read(table: str, where: str = "") -> pd.DataFrame:
     sql += f" WHERE {where}" if where else ""
     return db.query(sql)
 
-def _save(df: pd.DataFrame, table: str):
+def _save(df: pd.DataFrame, table: str, if_exists: str="replace"):
     """Upsert a DataFrame into the database via RealEstateDB._upsert_df."""
-    db._upsert_df(df, table)
+    db._upsert_df(df, table, if_exists)
 
 
 # ------------------------------------------------------------------
@@ -343,7 +343,7 @@ def get_mortgage_rates():
     _save(df, table)
     return df
 
-def get_unemployment(year):
+def get_unemployment(year, year_earliest):
     """
     Processed DB table: unemployment  (year, month, unemployment_rate)
     Already in normalised form — no separate proc step needed.
@@ -353,7 +353,7 @@ def get_unemployment(year):
         print("[DB] Loading unemployment from database")
         return _read(table)
 
-    df = pull_unemployment(year, year - 11)
+    df = pull_unemployment(year, year_earliest)
     _save(df, table)
     return df
 
@@ -371,7 +371,7 @@ def get_med_income(year):
 
     df = pull_med_income(year)
     df = df[df['median_income'] != -666666666]
-    _save(df, table)
+    _save(df, table, "append")
     return df
 
 
@@ -434,7 +434,7 @@ def get_school_rating(year=None):
         return None
 
     df['year'] = year
-    _save(df, table)
+    _save(df, table, "append")
     return df
 
 
@@ -552,9 +552,9 @@ def get_crimes_df(year, type):
     Columns: agency, month, offenses_per_100k, offenses, clearances, population, year
     """
     if type == 'V':
-        table = "crime_violent"
+        table = "crime_violent_raw"
     elif type == 'P':
-        table = "crime_property"
+        table = "crime_property_raw"
     else:
         return None
 
@@ -573,8 +573,9 @@ def get_crimes_df(year, type):
 
     if frames:
         crime_df         = pd.concat(frames, ignore_index=True)
+        crime_df = crime_df.drop(columns='population')
         crime_df['year'] = year
-        _save(crime_df, table)
+        _save(crime_df, table, "append")
         return crime_df
 
     return pd.DataFrame(columns=["agency","month","offenses_per_100k","offenses","clearances","population","year"])

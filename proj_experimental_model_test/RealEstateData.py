@@ -80,7 +80,7 @@ class RealEstateDataClass:
 
         # 3. Economic Environment
         self.mortgage_rates_df     = self.ds.get_mortgage_rates()
-        self.unemployment_rates_df = self.ds.get_unemployment(self.curr_yr)
+        self.unemployment_rates_df = self.ds.get_unemployment(self.curr_yr, self.year_start)
 
         for year in range(self.year_start, self.curr_yr):
             self.median_income_dict[year]  = self.ds.get_med_income(year)

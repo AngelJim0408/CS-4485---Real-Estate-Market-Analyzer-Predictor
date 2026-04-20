@@ -1,0 +1,44 @@
+
+---------------------
+-- target_zhvi_3m Testing Evaluation --
+MAE: $12,365
+RMSE:  $35,253
+MAPE: 2.22%
+R^2 score:   0.985
+---------------------
+-- Top 20 features --
+                feature  pct_infl
+             zhvi_lag1m  0.977956
+             zhvi_lag3m  0.013501
+             zhvi_lag6m  0.006764
+          mortgage_rate  0.000768
+              inventory  0.000257
+          median_income  0.000222
+      unemployment_rate  0.000201
+       total_population  0.000154
+total_offenses_per_100k  0.000084
+            sales_count  0.000051
+           new_listings  0.000041
+---------------------
+
+---------------------
+-- target_zhvi_6m Testing Evaluation --
+MAE: $15,615
+RMSE:  $38,972
+MAPE: 2.96%
+R^2 score:   0.982
+---------------------
+-- Top 20 features --
+                feature  pct_infl
+             zhvi_lag1m  0.956483
+             zhvi_lag3m  0.037263
+             zhvi_lag6m  0.002818
+          mortgage_rate  0.001494
+      unemployment_rate  0.000749
+              inventory  0.000372
+       total_population  0.000245
+          median_income  0.000234
+total_offenses_per_100k  0.000143
+            sales_count  0.000133
+           new_listings  0.000066
+---------------------
