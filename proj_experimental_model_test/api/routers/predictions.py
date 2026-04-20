@@ -45,17 +45,10 @@ def get_predictions(
             detail="Models not loaded. Ensure saved_models/ contains .joblib files.",
         )
 
-<<<<<<< HEAD
     if not db_manager.has_master():
         raise HTTPException(
             status_code=503,
             detail="Feature vectors (master table) not loaded in database. master table needs to be loaded in database.",
-=======
-    if not db_manager.has_feature_vectors():
-        raise HTTPException(
-            status_code=503,
-            detail="Feature vectors not loaded in database. Run load_feature_vectors() first.",
->>>>>>> main
         )
 
     # Get the feature row from the feature_vectors table
