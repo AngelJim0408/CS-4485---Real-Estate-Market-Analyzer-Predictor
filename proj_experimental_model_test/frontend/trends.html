@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Price Trends — DallasHomes</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        /* ── Page-specific overrides ── */
+        .app {
+            grid-template-rows: 56px 60px 1fr;
+            overflow: hidden;
+        }
+
+        .trends-body {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* ── Left panel ── */
+        .trends-panel {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .trends-panel-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .trends-panel-header h2 {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+
+        .trends-panel-header p {
+            margin: 0;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .zip-search-wrap {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .zip-search-input {
+            width: 100%;
+            height: 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .zip-search-input:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: var(--surface);
+        }
+
+        .zip-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .zip-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 0.12s;
+            border: 1px solid transparent;
+            margin-bottom: 4px;
+        }
+
+        .zip-item:hover { background: var(--bg); }
+
+        .zip-item.active {
+            background: var(--blue-soft);
+            border-color: var(--blue-mid);
+        }
+
+        .zip-item-code {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .zip-item.active .zip-item-code { color: var(--blue-dark); }
+
+        .zip-item-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .zip-item.active .zip-item-value { color: var(--blue); }
+
+        /* ── Right chart area ── */
+        .trends-main {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        .trends-top {
+            padding: 16px 20px 12px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .trends-title-group h1 {
+            margin: 0 0 3px 0;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .trends-title-group p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .trends-stats {
+            display: flex;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .trend-stat {
+            text-align: right;
+        }
+
+        .trend-stat-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .trend-stat-value {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .trend-stat-value.up   { color: var(--green); }
+        .trend-stat-value.down { color: var(--red); }
+
+        /* ── Range selector ── */
+        .range-bar {
+            padding: 10px 20px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .range-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--muted);
+            margin-right: 4px;
+        }
+
+        .range-btn {
+            height: 28px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            background: var(--bg);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.12s;
+            font-family: inherit;
+        }
+
+        .range-btn:hover { border-color: #93c5fd; color: var(--blue); }
+
+        .range-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        /* ── Chart canvas area ── */
+        .chart-wrap {
+            flex: 1;
+            padding: 16px 20px 12px;
+            min-height: 0;
+            position: relative;
+        }
+
+        .chart-canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* ── Empty / loading states ── */
+        .chart-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--muted);
+        }
+
+        .chart-placeholder-icon { font-size: 40px; opacity: 0.4; }
+
+        .chart-placeholder-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .chart-placeholder-sub {
+            font-size: 12px;
+            color: var(--muted-light);
+        }
+
+        .chart-loading {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(248,250,252,0.85);
+            backdrop-filter: blur(4px);
+            border-radius: var(--radius-lg);
+        }
+
+        .chart-loading.show { display: flex; }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--blue-mid);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Nav link in topbar ── */
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-link {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-full);
+            transition: background 0.12s, color 0.12s;
+        }
+
+        .nav-link:hover { background: var(--bg); color: var(--text); }
+        .nav-link.active { background: var(--blue-soft); color: var(--blue); }
+
+        /* ── Error ── */
+        .fetch-error {
+            display: none;
+            background: var(--red-soft);
+            border: 1px solid #fecaca;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 12px;
+            color: var(--red);
+            margin: 12px 20px 0;
+        }
+
+        .fetch-error.show { display: block; }
+
+        /* responsive */
+        @media (max-width: 860px) {
+            .trends-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+            .trends-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 220px; }
+            .zip-list { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding: 8px; gap: 6px; }
+            .zip-item { margin-bottom: 0; white-space: nowrap; flex-shrink: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+
+        <header class="topbar">
+            <div class="brand"><span>Dallas</span>Homes</div>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">🗺 Explorer</a>
+                <a href="trends.html" class="nav-link active">📈 Trends</a>
+            </nav>
+            <div class="topbar-badge">Dallas County</div>
+        </header>
+
+        <!-- Toolbar reused as a filter bar -->
+        <section class="toolbar">
+            <span class="toolbar-label">View</span>
+            <div class="toolbar-controls">
+                <select id="metricSelect" class="toolbar-select">
+                    <option value="zhvi" selected>Home Value (ZHVI)</option>
+                </select>
+            </div>
+            <div class="toolbar-divider"></div>
+            <span class="toolbar-label">Compare ZIP</span>
+            <div class="toolbar-controls">
+                <input id="compareZip" type="text" maxlength="5" placeholder="e.g. 75201"
+                    style="height:34px;border:1px solid var(--border);border-radius:var(--radius-full);padding:0 12px;font-size:12px;font-weight:600;color:var(--text-2);background:var(--bg);outline:none;font-family:inherit;width:110px;" />
+                <button id="compareBtn" class="toolbar-apply">Add</button>
+                <button id="clearCompareBtn" class="toolbar-apply" style="background:#6b7280;display:none;">Clear</button>
+            </div>
+        </section>
+
+        <div class="trends-body">
+
+            <!-- Left: ZIP list -->
+            <aside class="trends-panel">
+                <div class="trends-panel-header">
+                    <h2>Dallas ZIP Codes</h2>
+                    <p>Click any ZIP to view its price history</p>
+                </div>
+                <div class="zip-search-wrap">
+                    <input id="zipFilter" type="text" class="zip-search-input" placeholder="Filter ZIPs…" maxlength="5" />
+                </div>
+                <div class="zip-list" id="zipList">
+                    <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Loading ZIP codes…</div>
+                </div>
+            </aside>
+
+            <!-- Right: Chart -->
+            <div class="trends-main">
+                <div class="trends-top">
+                    <div class="trends-title-group">
+                        <h1 id="chartTitle">Select a ZIP Code</h1>
+                        <p id="chartSubtitle">Choose a ZIP from the left panel to view its price history</p>
+                    </div>
+                    <div class="trends-stats" id="trendStats" style="display:none;">
+                        <div class="trend-stat">
+                            <div class="trend-stat-label">Current Value</div>
+                            <div class="trend-stat-value" id="statCurrent">--</div>
+                        </div>
+                        <div class="trend-stat">
+                            <div class="trend-stat-label">Peak Value</div>
+                            <div class="trend-stat-value" id="statPeak">--</div>
+                        </div>
+                        <div class="trend-stat">
+                            <div class="trend-stat-label">5-Year Change</div>
+                            <div class="trend-stat-value" id="statChange">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="range-bar">
+                    <span class="range-label">Range</span>
+                    <button class="range-btn" data-years="3">3Y</button>
+                    <button class="range-btn" data-years="5">5Y</button>
+                    <button class="range-btn" data-years="10">10Y</button>
+                    <button class="range-btn active" data-years="all">All</button>
+                </div>
+
+                <div class="fetch-error" id="fetchError"></div>
+
+                <div class="chart-wrap">
+                    <div class="chart-canvas-container">
+                        <div class="chart-placeholder" id="chartPlaceholder">
+                            <div class="chart-placeholder-icon">📊</div>
+                            <div class="chart-placeholder-text">No ZIP selected</div>
+                            <div class="chart-placeholder-sub">Pick a ZIP code from the left panel</div>
+                        </div>
+                        <div class="chart-loading" id="chartLoading">
+                            <div class="spinner"></div>
+                        </div>
+                        <canvas id="priceChart" style="display:none;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /* ── Config ── */
+        const BASE_URL = 'http://localhost:8000';
+
+        /* ── State ── */
+        let allZipcodes    = [];
+        let activeZip      = null;
+        let compareZip     = null;
+        let activeRecords  = [];
+        let compareRecords = [];
+        let chartInstance  = null;
+        let activeRange    = 'all';
+
+        /* ── DOM ── */
+        const zipList        = document.getElementById('zipList');
+        const zipFilter      = document.getElementById('zipFilter');
+        const chartTitle     = document.getElementById('chartTitle');
+        const chartSubtitle  = document.getElementById('chartSubtitle');
+        const trendStats     = document.getElementById('trendStats');
+        const statCurrent    = document.getElementById('statCurrent');
+        const statPeak       = document.getElementById('statPeak');
+        const statChange     = document.getElementById('statChange');
+        const chartCanvas    = document.getElementById('priceChart');
+        const placeholder    = document.getElementById('chartPlaceholder');
+        const loadingOverlay = document.getElementById('chartLoading');
+        const fetchError     = document.getElementById('fetchError');
+        const compareInput   = document.getElementById('compareZip');
+        const compareBtn     = document.getElementById('compareBtn');
+        const clearCmpBtn    = document.getElementById('clearCompareBtn');
+
+        /* ── Utilities ── */
+        function fmt$$(v) {
+            if (v == null) return '--';
+            return '$' + Math.round(v).toLocaleString('en-US');
+        }
+
+        function fmtPct(v) {
+            if (v == null) return '--';
+            return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+        }
+
+        function showError(msg) {
+            fetchError.textContent = msg;
+            fetchError.classList.add('show');
+        }
+
+        function hideError() { fetchError.classList.remove('show'); }
+
+        /* ── Load ZIP list ── */
+        async function loadZipcodes() {
+            try {
+                const res  = await fetch(BASE_URL + '/api/zipcodes');
+                const data = await res.json();
+                allZipcodes = data.zipcodes || [];
+                renderZipList(allZipcodes);
+            } catch {
+                zipList.innerHTML = '<div style="padding:16px;color:var(--red);font-size:12px;">Could not load ZIP codes. Is the server running?</div>';
+            }
+        }
+
+        function renderZipList(zips) {
+            if (!zips.length) {
+                zipList.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;">No ZIPs found.</div>';
+                return;
+            }
+            zipList.innerHTML = zips.map(z => `
+                <div class="zip-item ${z === activeZip ? 'active' : ''}" data-zip="${z}">
+                    <span class="zip-item-code">${z}</span>
+                    <span class="zip-item-value">${z === activeZip ? fmt$$(activeRecords.at(-1)?.zhvi) : ''}</span>
+                </div>
+            `).join('');
+
+            zipList.querySelectorAll('.zip-item').forEach(el => {
+                el.addEventListener('click', () => selectZip(el.dataset.zip));
+            });
+        }
+
+        zipFilter.addEventListener('input', () => {
+            const q = zipFilter.value.trim();
+            renderZipList(q ? allZipcodes.filter(z => z.startsWith(q)) : allZipcodes);
+        });
+
+        /* ── Fetch ZHVI ── */
+        async function fetchZhvi(zip) {
+            const res = await fetch(BASE_URL + '/api/zhvi/' + zip);
+            if (!res.ok) throw new Error('API ' + res.status);
+            const data = await res.json();
+            return data.records || [];
+        }
+
+        /* ── Select a ZIP ── */
+        async function selectZip(zip) {
+            if (zip === activeZip) return;
+            activeZip = zip;
+            hideError();
+            setChartLoading(true);
+
+            try {
+                activeRecords = await fetchZhvi(zip);
+                renderChart();
+                updateStats();
+                renderZipList(allZipcodes.filter(z =>
+                    !zipFilter.value.trim() || z.startsWith(zipFilter.value.trim())
+                ));
+            } catch (err) {
+                showError('Could not load data for ZIP ' + zip + '. (' + err.message + ')');
+            } finally {
+                setChartLoading(false);
+            }
+        }
+
+        /* ── Compare ZIP ── */
+        compareBtn.addEventListener('click', async () => {
+            const zip = compareInput.value.trim();
+            if (!zip || zip.length < 5) return;
+            if (!allZipcodes.includes(zip)) {
+                showError('ZIP ' + zip + ' is not in the dataset.');
+                return;
+            }
+            hideError();
+            setChartLoading(true);
+            try {
+                compareZip     = zip;
+                compareRecords = await fetchZhvi(zip);
+                clearCmpBtn.style.display = 'inline-flex';
+                if (activeZip) renderChart();
+            } catch (err) {
+                showError('Could not load compare ZIP. (' + err.message + ')');
+            } finally {
+                setChartLoading(false);
+            }
+        });
+
+        clearCmpBtn.addEventListener('click', () => {
+            compareZip     = null;
+            compareRecords = [];
+            compareInput.value = '';
+            clearCmpBtn.style.display = 'none';
+            if (activeZip) renderChart();
+        });
+
+        /* ── Range buttons ── */
+        document.querySelectorAll('.range-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeRange = btn.dataset.years;
+                if (activeZip) renderChart();
+            });
+        });
+
+        /* ── Filter records by range ── */
+        function filterByRange(records) {
+            if (activeRange === 'all') return records;
+            const years = parseInt(activeRange);
+            const latest = records.at(-1);
+            if (!latest) return records;
+            const cutoffYear  = latest.year - years;
+            const cutoffMonth = latest.month;
+            return records.filter(r =>
+                r.year > cutoffYear ||
+                (r.year === cutoffYear && r.month >= cutoffMonth)
+            );
+        }
+
+        /* ── Build chart ── */
+        function buildLabels(records) {
+            return records.map(r => {
+                const d = new Date(r.year, r.month - 1);
+                return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+            });
+        }
+
+        function renderChart() {
+            if (!activeZip || !activeRecords.length) return;
+
+            const filtered  = filterByRange(activeRecords);
+            const labels    = buildLabels(filtered);
+            const values    = filtered.map(r => Math.round(r.zhvi));
+
+            placeholder.style.display = 'none';
+            chartCanvas.style.display = 'block';
+
+            chartTitle.textContent    = 'ZIP ' + activeZip + ' — Home Value History';
+            chartSubtitle.textContent = filtered[0]
+                ? `${filtered[0].year} – ${filtered.at(-1).year} · ${filtered.length} data points`
+                : '';
+            trendStats.style.display  = 'flex';
+
+            const datasets = [{
+                label:           'ZIP ' + activeZip,
+                data:            values,
+                borderColor:     '#2563eb',
+                backgroundColor: 'rgba(37,99,235,0.08)',
+                borderWidth:     2,
+                pointRadius:     0,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: '#2563eb',
+                fill:            true,
+                tension:         0.3
+            }];
+
+            /* Compare dataset */
+            if (compareZip && compareRecords.length) {
+                const cFiltered = filterByRange(compareRecords);
+                datasets.push({
+                    label:           'ZIP ' + compareZip,
+                    data:            cFiltered.map(r => Math.round(r.zhvi)),
+                    borderColor:     '#7c3aed',
+                    backgroundColor: 'rgba(124,58,237,0.06)',
+                    borderWidth:     2,
+                    pointRadius:     0,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: '#7c3aed',
+                    fill:            true,
+                    tension:         0.3
+                });
+            }
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(chartCanvas, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive:          true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode:      'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display:  compareZip != null,
+                            position: 'top',
+                            labels: {
+                                font:      { size: 12, weight: '700', family: 'Inter' },
+                                color:     '#374151',
+                                boxWidth:  12,
+                                boxHeight: 12,
+                                borderRadius: 3,
+                                padding:   16
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15,23,42,0.92)',
+                            titleFont:   { size: 12, weight: '700', family: 'Inter' },
+                            bodyFont:    { size: 13, weight: '600', family: 'Inter' },
+                            padding:     12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: ctx => '  ' + ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid:  { display: false },
+                            ticks: {
+                                font:        { size: 11, family: 'Inter' },
+                                color:       '#9ca3af',
+                                maxTicksLimit: 10,
+                                maxRotation: 0
+                            },
+                            border: { color: '#e5e7eb' }
+                        },
+                        y: {
+                            position: 'left',
+                            grid:  { color: '#f1f5f9', drawBorder: false },
+                            ticks: {
+                                font:  { size: 11, family: 'Inter' },
+                                color: '#9ca3af',
+                                callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
+                            },
+                            border: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ── Update stat cards ── */
+        function updateStats() {
+            if (!activeRecords.length) return;
+
+            const latest   = activeRecords.at(-1);
+            const allVals  = activeRecords.map(r => r.zhvi);
+            const peak     = Math.max(...allVals);
+
+            /* 5-year change */
+            const now      = activeRecords.at(-1);
+            const fiveYrAgo = activeRecords.find(r =>
+                r.year === now.year - 5 && r.month === now.month
+            ) || activeRecords[0];
+            const pctChange = ((now.zhvi - fiveYrAgo.zhvi) / fiveYrAgo.zhvi) * 100;
+
+            statCurrent.textContent = fmt$$(latest.zhvi);
+            statPeak.textContent    = fmt$$(peak);
+            statChange.textContent  = fmtPct(pctChange);
+            statChange.className    = 'trend-stat-value ' + (pctChange >= 0 ? 'up' : 'down');
+        }
+
+        /* ── Loading state ── */
+        function setChartLoading(on) {
+            loadingOverlay.classList.toggle('show', on);
+        }
+
+        /* ── Init ── */
+        loadZipcodes();
+    </script>
+</body>
+</html>
