@@ -23,16 +23,7 @@ class ModelManager:
             print("[Models] saved_models/ directory not found. Predictions disabled.")
             return
 
-<<<<<<< HEAD
         target_names = ["target_zhvi_3m","target_zhvi_6m"]
-=======
-        target_names = [
-            "target_zhvi_3m",
-            "target_zhvi_6m",
-            "target_zhvi_3m_pct",
-            "target_zhvi_6m_pct",
-        ]
->>>>>>> main
 
         for target in target_names:
             model_file = self.models_path / f"{target}_rf_model.joblib"
