@@ -183,6 +183,7 @@ class RealEstateDataClass:
 
         print("Processed data loaded from database.")
         return self
+    
 
     # ------------------------------------------------------------------
     # MASTER / FEATURE ENGINEERING
@@ -196,6 +197,9 @@ class RealEstateDataClass:
 
     def build_features(self, main_folder=None):
         """Merge all processed DataFrames, engineer features, and save to DB."""
+        if self.master_df is None:
+            self.master_df = self.load_master_from_db()
+        
         print("Merging processed dataframes.")
         self.master_df = self.dn.build_merged_df(
             self.zhvi_proc, self.sales_proc, self.rent_proc,
@@ -209,10 +213,11 @@ class RealEstateDataClass:
         self.master_df = self.master_df.drop(columns=['rent'])
         self.dn.print_merged_log(self.master_df)
 
-        self.save_main_df()
+        #self.save_main_df()
 
         # Build feature vectors for model training
         self.master_df = self.de.create_feature_vectors(self.master_df)
+        self.save_main_df()
 
         return self
 

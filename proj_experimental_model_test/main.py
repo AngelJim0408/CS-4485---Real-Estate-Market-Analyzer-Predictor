@@ -85,31 +85,34 @@ if __name__ == "__main__":
 
             case '5':
                 if data_class.master_df is None:
-                    print("No master DataFrame. Run option 4 first.")
-                else:
-                    # # Train models, put in models_trained (dont use pct for now ['target_zhvi_3m_pct','target_zhvi_6m_pct'])
-                    target_names = ['target_zhvi_3m','target_zhvi_6m']
-                    mo.clear_log(model_log_path)
+                    # check if we can get master dataframe first.
+                    data_class.load_master_from_db()
+                    if data_class.master_df is None:
+                        print("No master DataFrame. Run option 4 first.")
+                        continue
+                # # Train models, put in models_trained (dont use pct for now ['target_zhvi_3m_pct','target_zhvi_6m_pct'])
+                target_names = ['target_zhvi_3m','target_zhvi_6m']
+                mo.clear_log(model_log_path)
 
-                    for target in target_names:
-                        print(f"Training for {target}.")
-                        x_train, x_test, y_train, y_test = data_class.get_model_inputs(
-                            target, target_cutoffs[target]
-                        )
-                        model = mo.train_model(x_train, y_train)
-                        models_trained[target] = model
-                        feature_split[target]  = (x_train, x_test, y_train, y_test)
+                for target in target_names:
+                    print(f"Training for {target}.")
+                    x_train, x_test, y_train, y_test = data_class.get_model_inputs(
+                        target, target_cutoffs[target]
+                    )
+                    model = mo.train_model(x_train, y_train)
+                    models_trained[target] = model
+                    feature_split[target]  = (x_train, x_test, y_train, y_test)
 
-                        print("---")
-                        results = mo.eval_model(model, x_test, y_test, target, "Testing")
-                        mo.write_log(model_log_path, results)
-                        print("---")
-                        results = mo.feature_analyze(model, x_train.columns.tolist())
-                        mo.write_log(model_log_path, results)
-                        print("---")
-                        mo.save_model(model, models_path / f"{target}_rf_model.joblib")
+                    print("---")
+                    results = mo.eval_model(model, x_test, y_test, target, "Testing")
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    results = mo.feature_analyze(model, x_train.columns.tolist())
+                    mo.write_log(model_log_path, results)
+                    print("---")
+                    mo.save_model(model, models_path / f"{target}_rf_model.joblib")
 
-                    print(f"All models trained and saved to '{models_path}'.")
+                print(f"All models trained and saved to '{models_path}'.")
 
             case '6':
                 # Load Model from path (don't use for now -> ['target_zhvi_3m_pct','target_zhvi_6m_pct'])
