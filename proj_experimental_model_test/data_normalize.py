@@ -96,8 +96,12 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
     TX0610600 Lewisville	75067, 75077,75057,75056 <- Remove (Mostly Denton County)
     TX0430800 Wylie		75098 			 <- Remove (Mostly Collin County)
     """
-    df = pd.merge(df,agency_zip,on='agency',how='left')
-    df.dropna(subset=['zipcode'], inplace=True)
+    # If zipcode already exists the data was loaded from the DB (already processed)
+    # — skip the agency merge and just re-clean the types
+    if 'zipcode' not in df.columns:
+        df = pd.merge(df, agency_zip, on='agency', how='left')
+        df.dropna(subset=['zipcode'], inplace=True)
+
     df.dropna(subset=['offenses'], inplace=True)
 
     df["zipcode"] = (
@@ -105,6 +109,16 @@ def normalize_crime(df: pd.DataFrame, agency_zip: pd.DataFrame) -> pd.DataFrame:
         .astype(str)
         .str.replace(r"\.0$", "", regex=True)  # remove trailing .0
         .str.zfill(5)                           # ensure 5-digit padding
+    )
+
+    # Parse month: FBI API returns "01-2015" format, split to "01" then cast to int
+    # so it matches the integer month columns in all other DataFrames
+    df["month"] = (
+        df["month"]
+        .astype(str)
+        .str.split("-")
+        .str[0]
+        .astype(int)
     )
 
     df = df[['zipcode','agency','month','offenses_per_100k','offenses','clearances']]
