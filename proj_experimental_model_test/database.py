@@ -33,35 +33,6 @@ CREATE TABLE IF NOT EXISTS zhvi (
     PRIMARY KEY (zipcode, year, month)
 );
 
-CREATE TABLE IF NOT EXISTS sales (
-    year        INTEGER NOT NULL,
-    month       INTEGER NOT NULL,
-    sales_count REAL,
-    PRIMARY KEY (year, month)
-);
-
-CREATE TABLE IF NOT EXISTS rent (
-    zipcode     TEXT    NOT NULL,
-    year        INTEGER NOT NULL,
-    month       INTEGER NOT NULL,
-    rent        REAL,
-    PRIMARY KEY (zipcode, year, month)
-);
-
-CREATE TABLE IF NOT EXISTS listings (
-    year         INTEGER NOT NULL,
-    month        INTEGER NOT NULL,
-    new_listings REAL,
-    PRIMARY KEY (year, month)
-);
-
-CREATE TABLE IF NOT EXISTS inventory (
-    year      INTEGER NOT NULL,
-    month     INTEGER NOT NULL,
-    inventory REAL,
-    PRIMARY KEY (year, month)
-);
-
 CREATE TABLE IF NOT EXISTS mortgage_rates (
     year          INTEGER NOT NULL,
     month         INTEGER NOT NULL,

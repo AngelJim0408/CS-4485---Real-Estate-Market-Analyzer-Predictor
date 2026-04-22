@@ -20,10 +20,10 @@ class RealEstateDataClass:
 
         # Raw Data
         self.zhvi_df             = None
-        self.sales_df            = None
-        self.rent_df             = None
-        self.listings_df         = None
-        self.inventory_df        = None
+        #self.sales_df            = None
+        #self.rent_df             = None
+        #self.listings_df         = None
+        #self.inventory_df        = None
         self.redfin_alt_supply   = None
         self.mortgage_rates_df   = None
         self.unemployment_rates_df = None
@@ -41,11 +41,11 @@ class RealEstateDataClass:
 
         # Processed DataFrames
         self.zhvi_proc             = None
-        self.sales_proc            = None
-        self.rent_proc             = None
-        self.listings_proc         = None
-        self.inventory_proc        = None
-        self.redfin_alt_proc       = None
+        #self.sales_proc            = None
+        #self.rent_proc             = None
+        #self.listings_proc         = None
+        #self.inventory_proc        = None
+        self.redfin_supply       = None
         self.mortgage_rates_proc   = None
         self.unemployment_rates_proc = None
         self.median_income_proc    = None
@@ -72,10 +72,10 @@ class RealEstateDataClass:
         self.zhvi_df = self.ds.get_zhvi_data()
 
         # 2. Supply & Demand
-        self.sales_df          = self.ds.get_zillow_supply('sales_count')
-        self.rent_df           = self.ds.get_zillow_supply('rent')
-        self.listings_df       = self.ds.get_zillow_supply('new_listings')
-        self.inventory_df      = self.ds.get_zillow_supply('inventory')
+        #self.sales_df          = self.ds.get_zillow_supply('sales_count')
+        #self.rent_df           = self.ds.get_zillow_supply('rent')
+        #self.listings_df       = self.ds.get_zillow_supply('new_listings')
+        #self.inventory_df      = self.ds.get_zillow_supply('inventory')
         self.redfin_alt_supply = self.ds.get_redfin(self.zipcodes_lookup)
 
         # 3. Economic Environment
@@ -114,11 +114,11 @@ class RealEstateDataClass:
 
         # Normalise
         self.zhvi_proc             = self.dn.normalize_zillow_data(self.zhvi_df, 'zhvi')
-        self.sales_proc            = self.dn.normalize_zillow_data(self.sales_df, 'sales_count')
-        self.rent_proc             = self.dn.normalize_zillow_data(self.rent_df, 'rent')
-        self.listings_proc         = self.dn.normalize_zillow_data(self.listings_df, 'new_listings')
-        self.inventory_proc        = self.dn.normalize_zillow_data(self.inventory_df, 'inventory')
-        self.redfin_alt_proc       = self.dn.normalize_redfin_data(self.redfin_alt_supply)
+        #self.sales_proc            = self.dn.normalize_zillow_data(self.sales_df, 'sales_count')
+        #self.rent_proc             = self.dn.normalize_zillow_data(self.rent_df, 'rent')
+        #self.listings_proc         = self.dn.normalize_zillow_data(self.listings_df, 'new_listings')
+        #self.inventory_proc        = self.dn.normalize_zillow_data(self.inventory_df, 'inventory')
+        self.redfin_supply       = self.dn.normalize_redfin_data(self.redfin_alt_supply)
         self.mortgage_rates_proc   = self.dn.normalize_mortgage(self.mortgage_rates_df)
         self.unemployment_rates_proc = self.unemployment_rates_df  # already normalised
 
@@ -169,11 +169,11 @@ class RealEstateDataClass:
         main_folder kept for backward-compatibility but no longer used.
         """
         self.zhvi_proc               = self.db.query("SELECT * FROM zhvi")
-        self.sales_proc              = self.db.query("SELECT * FROM sales")
-        self.rent_proc               = self.db.query("SELECT * FROM rent")
-        self.listings_proc           = self.db.query("SELECT * FROM listings")
-        self.inventory_proc          = self.db.query("SELECT * FROM inventory")
-        self.redfin_alt_proc         = self.db.query("SELECT * FROM redfin_supply")
+        #self.sales_proc              = self.db.query("SELECT * FROM sales")
+        #self.rent_proc               = self.db.query("SELECT * FROM rent")
+        #self.listings_proc           = self.db.query("SELECT * FROM listings")
+        #self.inventory_proc          = self.db.query("SELECT * FROM inventory")
+        self.redfin_supply         = self.db.query("SELECT * FROM redfin_supply")
         self.mortgage_rates_proc     = self.db.query("SELECT * FROM mortgage_rates")
         self.unemployment_rates_proc = self.db.query("SELECT * FROM unemployment")
         self.median_income_proc      = self.db.query("SELECT * FROM median_income")
@@ -202,8 +202,7 @@ class RealEstateDataClass:
         
         print("Merging processed dataframes.")
         self.master_df = self.dn.build_merged_df(
-            self.zhvi_proc, self.sales_proc, self.rent_proc,
-            self.listings_proc, self.inventory_proc, self.redfin_alt_proc,
+            self.zhvi_proc, self.redfin_supply,
             self.mortgage_rates_proc, self.unemployment_rates_proc,
             self.median_income_proc, self.school_ratings_proc,
             self.crime_violent_proc, self.crime_property_proc

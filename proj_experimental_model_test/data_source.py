@@ -162,6 +162,7 @@ def get_zhvi_data():
 # ------------------------------------------------------------------
 # 2. SUPPLY & DEMAND
 # ------------------------------------------------------------------
+"""
 def pull_zillow_sales():
     url = "https://files.zillowstatic.com/research/public_csvs/sales_count_now/Metro_sales_count_now_uc_sfrcondo_month.csv"
     return pd.read_csv(StringIO(requests.get(url).text))
@@ -177,7 +178,7 @@ def pull_zillow_listings():
 def pull_zillow_inv():
     url = "https://files.zillowstatic.com/research/public_csvs/invt_fs/Metro_invt_fs_uc_sfrcondo_sm_month.csv"
     return pd.read_csv(StringIO(requests.get(url).text))
-
+"""
 def pull_redfin_zip(cols, dmap):
     """
     Downloads Redfin ZIP-level market tracker (~1 GB) to a temp file.
@@ -211,6 +212,7 @@ def _clean_zillow_supply(df: pd.DataFrame) -> pd.DataFrame:
         df.drop(columns=['RegionID','SizeRank','RegionType','StateName'], inplace=True)
         df.rename(columns={'RegionName': 'msa'}, inplace=True)
     return df
+
 
 def get_zillow_supply(type):
     """

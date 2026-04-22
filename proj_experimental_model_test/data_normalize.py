@@ -163,10 +163,10 @@ def print_merged_log(df: pd.DataFrame):
 
 def build_merged_df( # if zipcode not column, means data for whole county
     zhvi: pd.DataFrame,             # (zipcode,year,month,zhvi)
-    sales: pd.DataFrame,            # (year,month,sales_count) <- across whole county
-    rent: pd.DataFrame,             # (zipcode,year,month,rent)
-    listings: pd.DataFrame,         # (year,month,new_listings)
-    inventory: pd.DataFrame,        # (year,month,inventory),
+    #sales: pd.DataFrame,            # (year,month,sales_count) <- across whole county
+    #rent: pd.DataFrame,             # (zipcode,year,month,rent)
+    #listings: pd.DataFrame,         # (year,month,new_listings)
+    #inventory: pd.DataFrame,        # (year,month,inventory),
     redfin_alt: pd.DataFrame,       # (zipcode,year,month,sales_count,new_listings,inventory) <- has zip info, use this first!!!
 
     mortgage: pd.DataFrame,         # *(year,month,mortgage_rate)
