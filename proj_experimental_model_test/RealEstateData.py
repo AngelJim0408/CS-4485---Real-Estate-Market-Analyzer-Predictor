@@ -24,7 +24,7 @@ class RealEstateDataClass:
         #self.rent_df             = None
         #self.listings_df         = None
         #self.inventory_df        = None
-        self.redfin_alt_supply   = None
+        self.redfin_supply_df   = None
         self.mortgage_rates_df   = None
         self.unemployment_rates_df = None
         self.median_income_dict  = {}
@@ -45,7 +45,7 @@ class RealEstateDataClass:
         #self.rent_proc             = None
         #self.listings_proc         = None
         #self.inventory_proc        = None
-        self.redfin_supply       = None
+        self.redfin_supply_proc       = None
         self.mortgage_rates_proc   = None
         self.unemployment_rates_proc = None
         self.median_income_proc    = None
@@ -76,7 +76,7 @@ class RealEstateDataClass:
         #self.rent_df           = self.ds.get_zillow_supply('rent')
         #self.listings_df       = self.ds.get_zillow_supply('new_listings')
         #self.inventory_df      = self.ds.get_zillow_supply('inventory')
-        self.redfin_alt_supply = self.ds.get_redfin(self.zipcodes_lookup)
+        self.redfin_supply_df = self.ds.get_redfin(self.zipcodes_lookup)
 
         # 3. Economic Environment
         self.mortgage_rates_df     = self.ds.get_mortgage_rates()
@@ -118,7 +118,7 @@ class RealEstateDataClass:
         #self.rent_proc             = self.dn.normalize_zillow_data(self.rent_df, 'rent')
         #self.listings_proc         = self.dn.normalize_zillow_data(self.listings_df, 'new_listings')
         #self.inventory_proc        = self.dn.normalize_zillow_data(self.inventory_df, 'inventory')
-        self.redfin_supply       = self.dn.normalize_redfin_data(self.redfin_alt_supply)
+        self.redfin_supply_proc       = self.dn.normalize_redfin_data(self.redfin_supply_df)
         self.mortgage_rates_proc   = self.dn.normalize_mortgage(self.mortgage_rates_df)
         self.unemployment_rates_proc = self.unemployment_rates_df  # already normalised
 
@@ -173,7 +173,7 @@ class RealEstateDataClass:
         #self.rent_proc               = self.db.query("SELECT * FROM rent")
         #self.listings_proc           = self.db.query("SELECT * FROM listings")
         #self.inventory_proc          = self.db.query("SELECT * FROM inventory")
-        self.redfin_supply         = self.db.query("SELECT * FROM redfin_supply")
+        self.redfin_supply_proc      = self.db.query("SELECT * FROM redfin_supply")
         self.mortgage_rates_proc     = self.db.query("SELECT * FROM mortgage_rates")
         self.unemployment_rates_proc = self.db.query("SELECT * FROM unemployment")
         self.median_income_proc      = self.db.query("SELECT * FROM median_income")
@@ -202,14 +202,14 @@ class RealEstateDataClass:
         
         print("Merging processed dataframes.")
         self.master_df = self.dn.build_merged_df(
-            self.zhvi_proc, self.redfin_supply,
+            self.zhvi_proc, self.redfin_supply_proc,
             self.mortgage_rates_proc, self.unemployment_rates_proc,
             self.median_income_proc, self.school_ratings_proc,
             self.crime_violent_proc, self.crime_property_proc
         )
 
         # Drop rent — too many NaN values (>40%)
-        self.master_df = self.master_df.drop(columns=['rent'])
+        #self.master_df = self.master_df.drop(columns=['rent'])
         self.dn.print_merged_log(self.master_df)
 
         #self.save_main_df()

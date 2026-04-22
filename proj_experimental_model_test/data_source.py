@@ -43,6 +43,7 @@ if not FBI_API_KEY:
 DB_PATH = main_path / "real_estate.db"
 db = RealEstateDB(DB_PATH)
 db.create_tables()   # safe no-op if tables already exist
+db.init_dataset_status()
 
 
 # ------------------------------------------------------------------
@@ -213,14 +214,14 @@ def _clean_zillow_supply(df: pd.DataFrame) -> pd.DataFrame:
         df.rename(columns={'RegionName': 'msa'}, inplace=True)
     return df
 
-
+"""
 def get_zillow_supply(type):
-    """
-    Raw DB tables: zillow_raw_sales_count | zillow_raw_rent |
-                   zillow_raw_new_listings | zillow_raw_inventory
-    Wide-format frames returned for data_normalize to process.
-    types: sales_count | rent | new_listings | inventory
-    """
+    
+    #Raw DB tables: zillow_raw_sales_count | zillow_raw_rent |
+    #               zillow_raw_new_listings | zillow_raw_inventory
+    #Wide-format frames returned for data_normalize to process.
+    #types: sales_count | rent | new_listings | inventory
+    
     table = f"zillow_raw_{type}"
     if _has_rows(table):
         print(f"[DB] Loading {table} from database")
@@ -236,12 +237,13 @@ def get_zillow_supply(type):
     df = _clean_zillow_supply(raw)
     _save(df, table)
     return df
+"""
 
 def get_redfin(zipcodes):
     """
-    Raw DB table: redfin_supply  (date, date_end, zipcode, sales_count, new_listings, inventory)
+    Raw DB table: redfin_supply_raw  (date, date_end, zipcode, sales_count, new_listings, inventory)
     """
-    table = "redfin_supply"
+    table = "redfin_supply_raw"
     if _has_rows(table):
         print("[DB] Loading Redfin data from database")
         return _read(table)

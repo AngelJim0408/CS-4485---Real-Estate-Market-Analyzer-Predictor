@@ -185,7 +185,7 @@ def build_merged_df( # if zipcode not column, means data for whole county
     main_df = zhvi.copy()
 
     # Join by month + zip
-    main_df = main_df.merge(rent, on=['zipcode','year','month'], how='left')
+    #main_df = main_df.merge(rent, on=['zipcode','year','month'], how='left')
 
     # merge redfin sales_count,new_listings,inventory
     main_df = main_df.merge(redfin_alt, on=['zipcode','year','month'], how='left')

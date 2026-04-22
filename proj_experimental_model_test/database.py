@@ -25,6 +25,24 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS dataset_status (
+    dataset_name    TEXT PRIMARY KEY,
+    last_upd        TEXT,
+    last_attempt    TEXT,
+    status          TEXT,
+    notes           TEXT
+);
+
+CREATE TABLE IF NOT EXISTS redfin_supply (
+    zipcode         TEXT    NOT NULL,
+    year            INTEGER NOT NULL,
+    month           INTEGER NOT NULL,
+    sales_count     REAL,
+    new_listings    REAL,
+    inventory       REAL,
+    PRIMARY KEY (zipcode, year, month)
+);
+
 CREATE TABLE IF NOT EXISTS zhvi (
     zipcode     TEXT    NOT NULL,
     year        INTEGER NOT NULL,
@@ -131,10 +149,11 @@ CREATE TABLE IF NOT EXISTS master (
 
 CSV_TABLE_MAP = {
     "zhvi_processed.csv":           "zhvi",
-    "sales_processed.csv":          "sales",
-    "rent_processed.csv":           "rent",
-    "listings_processed.csv":       "listings",
-    "inventory_processed.csv":      "inventory",
+    #"sales_processed.csv":          "sales",
+    #"rent_processed.csv":           "rent",
+    #"listings_processed.csv":       "listings",
+    #"inventory_processed.csv":      "inventory",
+    "redfin_processed.csv":         "redfin_supply",
     "mortgage_rates_processed.csv": "mortgage_rates",
     "unemployment_rates_processed.csv": "unemployment",
     "median_income_processed.csv":  "median_income",
@@ -171,6 +190,19 @@ class RealEstateDB:
         self.conn.executescript(SCHEMA)
         self.conn.commit()
         print("[DB] Tables created (or already exist).")
+
+    # ------------------------------------------------------------------
+    # Initialize Datasets Status Table
+    # ------------------------------------------------------------------
+
+    def init_dataset_status(self):
+        datasets = list(CSV_TABLE_MAP.values())
+
+        for d in datasets:
+            self.conn.execute("INSERT OR IGNORE INTO dataset_status (dataset_name) VALUES (?)", (d,))
+        
+        self.conn.commit()
+        print("[DB] dataset_status initialized.")
 
     # ------------------------------------------------------------------
     # Loading helpers
@@ -233,10 +265,11 @@ class RealEstateDB:
         """
         mapping = {
             "zhvi":           data_class.zhvi_proc,
-            "sales":          data_class.sales_proc,
-            "rent":           data_class.rent_proc,
-            "listings":       data_class.listings_proc,
-            "inventory":      data_class.inventory_proc,
+            #"sales":          data_class.sales_proc,
+            #"rent":           data_class.rent_proc,
+            #"listings":       data_class.listings_proc,
+            #"inventory":      data_class.inventory_proc,
+            "redfin_supply":  data_class.redfin_supply_proc,
             "mortgage_rates": data_class.mortgage_rates_proc,
             "unemployment":   data_class.unemployment_rates_proc,
             "median_income":  data_class.median_income_proc,
