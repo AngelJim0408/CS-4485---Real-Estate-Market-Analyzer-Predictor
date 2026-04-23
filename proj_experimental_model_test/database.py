@@ -17,6 +17,7 @@ Tables
 
 import sqlite3
 import pandas as pd
+import datetime as dt
 from pathlib import Path
 
 
@@ -192,7 +193,7 @@ class RealEstateDB:
         print("[DB] Tables created (or already exist).")
 
     # ------------------------------------------------------------------
-    # Initialize Datasets Status Table
+    # Dataset Status Table
     # ------------------------------------------------------------------
 
     def init_dataset_status(self):
@@ -203,6 +204,29 @@ class RealEstateDB:
         
         self.conn.commit()
         print("[DB] dataset_status initialized.")
+
+    def get_last_update(self, data_name: str):
+        query = f"SELECT last_upd FROM dataset_status WHERE dataset_name = ?"
+
+        row = self.conn.execute(query, (data_name,)).fetchone()
+        return row[0] if row else None
+
+    def update_status(self, datetime: str, data_name: str):
+        query = f"UPDATE dataset_status SET last_upd = ?, last_attempt = NULL, status = 'success' WHERE dataset_name = ?"
+
+        self.conn.execute(query, (datetime, data_name))
+        self.conn.commit()
+
+        print(f"[DB] dataset_status : {data_name} successfully updated.")
+
+    
+    def update_fail(self, datetime: str, error_msg: str, data_name: str):
+        query = "UPDATE dataset_status SET last_attempt = ?, status = 'failed', notes = ? WHERE dataset_name = ?"
+        
+        self.conn.execute(query, (datetime, error_msg, data_name))
+        self.conn.commit()
+
+        print(f"[DB] dataset_status : {data_name} faled to update. {error_msg}")
 
     # ------------------------------------------------------------------
     # Loading helpers
@@ -281,6 +305,9 @@ class RealEstateDB:
 
         for table, df in mapping.items():
             self._upsert_df(df, table)
+            if table != "master":
+                # Datetime use ISO
+                self.update_status(dt.datetime.now().isoformat(), table)
 
         print("[DB] load_from_class complete.")
 

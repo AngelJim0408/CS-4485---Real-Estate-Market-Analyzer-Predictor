@@ -1,9 +1,10 @@
 import pandas as pd
-from datetime import date
+import datetime as dt
 from pathlib import Path
 
 from database import RealEstateDB
 
+date = dt.date
 
 class RealEstateDataClass:
     def __init__(self, data_source, data_normalize, data_engineering, year_earliest):
@@ -192,6 +193,8 @@ class RealEstateDataClass:
         """Save the master merged DataFrame to the 'master' DB table."""
         if self.master_df is not None:
             self.db._upsert_df(self.master_df, "master")
+            # ISO FORMAT for datetime
+            self.db.update_status(dt.datetime.now().isoformat(), "master")
             print("[DB] Master DataFrame saved to database.")
         return self
 
