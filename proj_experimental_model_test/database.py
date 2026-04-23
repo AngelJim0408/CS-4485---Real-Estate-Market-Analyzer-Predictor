@@ -18,6 +18,7 @@ Tables
 import sqlite3
 import pandas as pd
 import datetime as dt
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -177,10 +178,7 @@ class RealEstateDB:
         Call create_tables() after this to set up the schema.
         """
         self.db_path = Path(db_path)
-        self.conn = sqlite3.connect(self.db_path)
-        self.conn.execute("PRAGMA journal_mode=WAL")   # better write performance
-        self.conn.execute("PRAGMA foreign_keys=ON")
-        print(f"[DB] Connected to {self.db_path.resolve()}")
+        print(f"[DB] Database found: {self.db_path.resolve()}")
 
     # ------------------------------------------------------------------
     # Schema
@@ -188,8 +186,10 @@ class RealEstateDB:
 
     def create_tables(self):
         """Creates all tables (safe to call repeatedly — IF NOT EXISTS)."""
-        self.conn.executescript(SCHEMA)
-        self.conn.commit()
+        with self._get_conn() as conn:
+            conn.executescript(SCHEMA)
+            conn.commit()
+
         print("[DB] Tables created (or already exist).")
 
     # ------------------------------------------------------------------
@@ -198,33 +198,53 @@ class RealEstateDB:
 
     def init_dataset_status(self):
         datasets = list(CSV_TABLE_MAP.values())
-
-        for d in datasets:
-            self.conn.execute("INSERT OR IGNORE INTO dataset_status (dataset_name) VALUES (?)", (d,))
-        
-        self.conn.commit()
+        with self._get_conn() as conn:
+            for d in datasets:
+                conn.execute("INSERT OR IGNORE INTO dataset_status (dataset_name) VALUES (?)", (d,))
+            
+            conn.commit()
         print("[DB] dataset_status initialized.")
 
     def get_last_update(self, data_name: str):
         query = f"SELECT last_upd FROM dataset_status WHERE dataset_name = ?"
 
-        row = self.conn.execute(query, (data_name,)).fetchone()
-        return row[0] if row else None
+        with self._get_conn() as conn:
+            row = conn.execute(query, (data_name,)).fetchone()
+            return row[0] if row else None
 
     def update_status(self, datetime: str, data_name: str):
         query = f"UPDATE dataset_status SET last_upd = ?, last_attempt = NULL, status = 'success' WHERE dataset_name = ?"
 
-        self.conn.execute(query, (datetime, data_name))
-        self.conn.commit()
+        with self._get_conn() as conn:
+            conn.execute(query, (datetime, data_name))
+            conn.commit()
 
         print(f"[DB] dataset_status : {data_name} successfully updated.")
 
+    def update_running(self, datetime: str, data_name: str):
+        query = f"UPDATE dataset_status SET last_upd = ?, last_attempt = NULL, status = 'running' WHERE dataset_name = ?"
+
+        with self._get_conn() as conn:
+            conn.execute(query, (datetime, data_name))
+            conn.commit()
+
+        print(f"[DB] dataset_status : {data_name} updating..")
     
+    def update_skip(self, datetime: str, data_name: str):
+        query = "UPDATE dataset_status SET last_attempt = ?, status = 'skipped', notes = 'up to date' WHERE dataset_name = ?"
+        
+        with self._get_conn() as conn:
+            conn.execute(query, (datetime, data_name))
+            conn.commit()
+
+        print(f"[DB] dataset_status : {data_name} skipped. Up to Date.")
+
     def update_fail(self, datetime: str, error_msg: str, data_name: str):
         query = "UPDATE dataset_status SET last_attempt = ?, status = 'failed', notes = ? WHERE dataset_name = ?"
         
-        self.conn.execute(query, (datetime, error_msg, data_name))
-        self.conn.commit()
+        with self._get_conn() as conn:
+            conn.execute(query, (datetime, error_msg, data_name))
+            conn.commit()
 
         print(f"[DB] dataset_status : {data_name} faled to update. {error_msg}")
 
@@ -232,6 +252,16 @@ class RealEstateDB:
     # Loading helpers
     # ------------------------------------------------------------------
 
+    @contextmanager
+    def _get_conn(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA journal_mode=WAL") # better write performance
+        conn.execute("PRAGMA foreign_keys=ON")
+        try:
+            yield conn
+        finally:
+            conn.close()
+    
     def _upsert_df(self, df: pd.DataFrame, table: str, if_exists: str="replace"):
         """
         Writes a DataFrame into the given table using INSERT OR REPLACE
@@ -247,11 +277,69 @@ class RealEstateDB:
         if "zipcode" in df.columns:
             df["zipcode"] = df["zipcode"].astype(str).str.zfill(5)
 
-        row_count = len(df)
-        df.to_sql(table, self.conn, if_exists=if_exists, index=False,
-                  method="multi", chunksize=500)
-        self.conn.commit()
+        with self._get_conn() as conn:
+            row_count = len(df)
+            df.to_sql(table, conn, if_exists=if_exists, index=False,
+                    method="multi", chunksize=500)
+            conn.commit()
         print(f"[DB] {table:25s} → {row_count:,} rows written.")
+
+    def _insert_or_replace(pd_table, conn, keys, data_iter):
+        """
+        Custom pandas to_sql method that emits INSERT OR REPLACE so
+        re-runs never produce duplicate Primay Key errors. Use instead of
+        the default 'multi' method whenever appending incremental rows.
+        """
+        cols         = ", ".join(f'"{k}"' for k in keys)
+        placeholders = ", ".join("?" for _ in keys)
+        sql          = f'INSERT OR REPLACE INTO "{pd_table.name}" ({cols}) VALUES ({placeholders})'
+        conn.executemany(sql, data_iter)
+
+    def append_df(self, df: pd.DataFrame, table: str):
+        """
+        Incrementally append new rows without overwriting the table.
+        Uses INSERT OR REPLACE so overlapping primary keys are safely
+        updated rather than causing an IntegrityError.
+        """
+        if df is None or df.empty:
+            print(f"[DB] Skipping {table} — nothing new to append.")
+            return
+
+        df = df.copy()
+        if "zipcode" in df.columns:
+            df["zipcode"] = df["zipcode"].astype(str).str.zfill(5)
+
+        with self._get_conn() as conn:
+            df.to_sql(
+                table, conn,
+                if_exists="append",
+                index=False,
+                method=self._insert_or_replace,
+                chunksize=500,
+            )
+            conn.commit()
+        print(f"[DB] {table:25s} → {len(df):,} rows upserted (incremental).")
+
+    def get_max_period(self, table: str, year_col="year", month_col: str | None = "month") -> tuple:
+        """
+        Returns (max_year, max_month) already present in a table.
+        If month_col is None, returns (max_year, None).
+        Returns (None, None) when the table is empty or missing.
+        """
+        try:
+            with self._get_conn() as conn:
+                if month_col:
+                    row = conn.execute(
+                        f"SELECT MAX({year_col}), MAX({month_col}) "
+                        f"FROM {table} WHERE {year_col} = (SELECT MAX({year_col}) FROM {table})"
+                    ).fetchone()
+                else:
+                    row = conn.execute(
+                        f"SELECT MAX({year_col}), NULL FROM {table}"
+                    ).fetchone()
+                return (row[0], row[1]) if row and row[0] is not None else (None, None)
+        except Exception:
+            return (None, None)
 
     # ------------------------------------------------------------------
     # Load from CSV files (data_proc/ folder)
@@ -317,7 +405,8 @@ class RealEstateDB:
 
     def query(self, sql: str, params: tuple = ()) -> pd.DataFrame:
         """Run any SQL and return results as a DataFrame."""
-        return pd.read_sql_query(sql, self.conn, params=params)
+        with self._get_conn() as conn:
+            return pd.read_sql_query(sql, conn, params=params)
 
     def get_zipcodes(self) -> list:
         """Return sorted list of all zipcodes in the zhvi table."""
@@ -339,20 +428,20 @@ class RealEstateDB:
 
     def table_summary(self):
         """Print row counts for every table."""
-        tables = [row[0] for row in
-                  self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
-        print("\n[DB] Table summary:")
-        print(f"  {'Table':<30} {'Rows':>10}")
-        print(f"  {'-'*30} {'-'*10}")
-        for t in sorted(tables):
-            count = self.conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-            print(f"  {t:<30} {count:>10,}")
-        print()
+        with self._get_conn() as conn:
+            tables = [row[0] for row in
+                    conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+            print("\n[DB] Table summary:")
+            print(f"  {'Table':<30} {'Rows':>10}")
+            print(f"  {'-'*30} {'-'*10}")
+            for t in sorted(tables):
+                count = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+                print(f"  {t:<30} {count:>10,}")
+            print()
 
     # ------------------------------------------------------------------
     # Close
     # ------------------------------------------------------------------
 
     def close(self):
-        self.conn.close()
-        print("[DB] Connection closed.")
+        print("[DB] No persistent connection to close (safe design).")

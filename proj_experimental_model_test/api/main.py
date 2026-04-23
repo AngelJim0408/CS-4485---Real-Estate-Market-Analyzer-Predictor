@@ -10,13 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.database import db_manager
 from api.services.predictor import model_manager
-from api.routers import zipcodes, zhvi, market, predictions
+from api.services.data_manager import data_manager
+from api.routers import zipcodes, zhvi, market, predictions, update
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: connect DB + load models. Shutdown: close DB."""
     db_manager.connect()
+    data_manager.init()
     model_manager.load_models()
     yield
     db_manager.close()
@@ -43,6 +45,7 @@ app.include_router(zipcodes.router, prefix="/api", tags=["Zipcodes"])
 app.include_router(zhvi.router, prefix="/api", tags=["ZHVI"])
 app.include_router(market.router, prefix="/api", tags=["Market"])
 app.include_router(predictions.router, prefix="/api", tags=["Predictions"])
+app.include_router(update.router, prefix="/api", tags=["Update"]) 
 
 
 @app.get("/health")
