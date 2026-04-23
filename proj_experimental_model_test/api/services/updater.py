@@ -81,7 +81,7 @@ def _update_zhvi(db, ds, dn):
     max_year, max_month = db.get_max_period("zhvi")
 
     raw  = ds.pull_zhvi_data()
-    raw  = raw[raw["CountyName"] == "Dallas County"] & [raw["StateName"] == "TX"].copy()
+    raw  = raw[(raw["CountyName"] == "Dallas County") & (raw["StateName"] == "TX")].copy()
     raw.drop(
         columns=["RegionID", "SizeRank", "RegionType", "StateName",
                  "State", "City", "Metro", "CountyName"],
@@ -284,7 +284,7 @@ def run_update(db, data_class, table: str):
     dn = data_class.dn
 
     try:
-        db.update_running(_get_time(), table)
+        db.update_running(table)
         _UPDATERS[table](db, ds, dn, data_class)
         db.update_status(_get_time(), table)
         print(f"[UPDATE] {table} complete")

@@ -213,7 +213,7 @@ class RealEstateDB:
             return row[0] if row else None
 
     def update_status(self, datetime: str, data_name: str):
-        query = f"UPDATE dataset_status SET last_upd = ?, last_attempt = NULL, status = 'success' WHERE dataset_name = ?"
+        query = f"UPDATE dataset_status SET last_upd = ?, last_attempt = NULL, status = 'success', notes = 'up to date' WHERE dataset_name = ?"
 
         with self._get_conn() as conn:
             conn.execute(query, (datetime, data_name))
@@ -221,11 +221,11 @@ class RealEstateDB:
 
         print(f"[DB] dataset_status : {data_name} successfully updated.")
 
-    def update_running(self, datetime: str, data_name: str):
-        query = f"UPDATE dataset_status SET last_upd = ?, last_attempt = NULL, status = 'running' WHERE dataset_name = ?"
+    def update_running(self, data_name: str):
+        query = f"UPDATE dataset_status SET last_attempt = NULL, status = 'running' WHERE dataset_name = ?"
 
         with self._get_conn() as conn:
-            conn.execute(query, (datetime, data_name))
+            conn.execute(query, (data_name,))
             conn.commit()
 
         print(f"[DB] dataset_status : {data_name} updating..")
@@ -284,6 +284,7 @@ class RealEstateDB:
             conn.commit()
         print(f"[DB] {table:25s} → {row_count:,} rows written.")
 
+    @staticmethod
     def _insert_or_replace(pd_table, conn, keys, data_iter):
         """
         Custom pandas to_sql method that emits INSERT OR REPLACE so

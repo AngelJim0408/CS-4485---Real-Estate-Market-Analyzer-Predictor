@@ -13,6 +13,16 @@ from api.services.predictor import model_manager
 from api.services.data_manager import data_manager
 from api.routers import zipcodes, zhvi, market, predictions, update
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
+scheduler = BackgroundScheduler()
+
+def run_updates_job():
+    print("[SCHEDULER] Running automatic update...")
+    try:
+        update.run_updates()
+    except Exception as e:
+        print("[SCHEDULER ERROR]", e)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,7 +30,15 @@ async def lifespan(app: FastAPI):
     db_manager.connect()
     data_manager.init()
     model_manager.load_models()
+
+    scheduler.add_job(run_updates_job,"interval",hours=24,max_instances=1)
+    scheduler.start()
+
+    #run on startup
+    run_updates_job()
     yield
+
+    scheduler.shutdown()
     db_manager.close()
 
 
