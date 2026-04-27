@@ -5,12 +5,18 @@ Run from proj_experimental_model_test/:
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from api.database import db_manager
 from api.services.predictor import model_manager
 from api.routers import zipcodes, zhvi, market, predictions
+
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 
 @asynccontextmanager
@@ -29,7 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow React dev server
+# CORS — allow all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,7 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
+# Register API routers
 app.include_router(zipcodes.router, prefix="/api", tags=["Zipcodes"])
 app.include_router(zhvi.router, prefix="/api", tags=["ZHVI"])
 app.include_router(market.router, prefix="/api", tags=["Market"])
@@ -52,3 +58,21 @@ def health_check():
         "database": db_manager.is_connected(),
         "models_loaded": model_manager.is_loaded(),
     }
+
+
+# --- Serve frontend ---
+
+@app.get("/")
+def serve_home():
+    """Serve the main frontend page."""
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/trends")
+def serve_trends():
+    """Serve the trends page."""
+    return FileResponse(FRONTEND_DIR / "trends.html")
+
+
+# Serve static files (CSS, JS, images) from the frontend folder
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")

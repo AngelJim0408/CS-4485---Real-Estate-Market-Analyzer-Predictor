@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dallas Real Estate Explorer</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9OEltQr637XI83xbT579hFDh97qCGGt8&callback=initGoogleMap&loading=async" async defer></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
             <div class="brand"><span>Dallas</span>Homes</div>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link active">🗺 Explorer</a>
-                <a href="trends.html" class="nav-link">📈 Trends</a>
+                <a href="/trends" class="nav-link">📈 Trends</a>
             </nav>
             <div class="topbar-badge">Dallas County</div>
         </header>
@@ -172,10 +172,10 @@
         /* ================================================================
            CONFIG — update BASE_URL to match your FastAPI server
            ================================================================
-           Local dev:   const BASE_URL = 'http://localhost:8000';
+           Local dev:   const BASE_URL = '';
            Deployed:    const BASE_URL = 'https://your-api-domain.com';
            ================================================================ */
-        const BASE_URL = 'http://localhost:8000';
+        const BASE_URL = '';
 
         /* ================================================================
            GOOGLE MAPS  — interactive ZIP boundary map
