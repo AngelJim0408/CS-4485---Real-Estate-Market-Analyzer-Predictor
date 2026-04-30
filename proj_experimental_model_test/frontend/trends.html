@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Price Trends — DallasHomes</title>
+    <title>Market Trends — DallasHomes</title>
     <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
-        /* ── Page-specific overrides ── */
+        body { overflow: auto; }
+
         .app {
+            height: auto;
+            min-height: 100vh;
             grid-template-rows: 56px 60px 1fr;
-            overflow: hidden;
         }
 
+        /* ── Layout ── */
         .trends-body {
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 260px 1fr;
             min-height: 0;
-            overflow: hidden;
+            align-items: start;
         }
 
         /* ── Left panel ── */
@@ -26,21 +29,22 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            min-height: 0;
+            position: sticky;
+            top: 0;
+            height: calc(100vh - 116px);
             overflow: hidden;
         }
 
         .trends-panel-header {
-            padding: 16px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
 
         .trends-panel-header h2 {
-            margin: 0 0 4px 0;
+            margin: 0 0 3px 0;
             font-size: 14px;
             font-weight: 800;
-            letter-spacing: -0.01em;
         }
 
         .trends-panel-header p {
@@ -50,18 +54,18 @@
         }
 
         .zip-search-wrap {
-            padding: 12px 16px;
+            padding: 10px 12px;
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
 
         .zip-search-input {
             width: 100%;
-            height: 36px;
+            height: 34px;
             border: 1px solid var(--border);
             border-radius: var(--radius-full);
-            padding: 0 14px;
-            font-size: 13px;
+            padding: 0 12px;
+            font-size: 12px;
             font-weight: 500;
             color: var(--text);
             background: var(--bg);
@@ -73,7 +77,6 @@
         .zip-search-input:focus {
             border-color: #93c5fd;
             box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-            background: var(--surface);
         }
 
         .zip-list {
@@ -86,12 +89,12 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border-radius: var(--radius-md);
             cursor: pointer;
             transition: background 0.12s;
             border: 1px solid transparent;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .zip-item:hover { background: var(--bg); }
@@ -102,66 +105,64 @@
         }
 
         .zip-item-code {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text);
         }
 
         .zip-item.active .zip-item-code { color: var(--blue-dark); }
 
-        .zip-item-value {
-            font-size: 12px;
+        .zip-item-city {
+            font-size: 10px;
             font-weight: 600;
             color: var(--muted);
         }
 
-        .zip-item.active .zip-item-value { color: var(--blue); }
-
-        /* ── Right chart area ── */
+        /* ── Right main area ── */
         .trends-main {
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            min-height: 0;
-            background: var(--bg);
-            overflow: hidden;
+            gap: 16px;
+            min-width: 0;
         }
 
-        .trends-top {
-            padding: 16px 20px 12px;
+        /* ── Header bar ── */
+        .trends-header {
             background: var(--surface);
-            border-bottom: 1px solid var(--border);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
             gap: 16px;
-            flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
-        .trends-title-group h1 {
-            margin: 0 0 3px 0;
+        .trends-header-left h1 {
+            margin: 0 0 2px 0;
             font-size: 20px;
             font-weight: 900;
             letter-spacing: -0.03em;
             color: var(--text);
         }
 
-        .trends-title-group p {
+        .trends-header-left p {
             margin: 0;
             font-size: 12px;
             color: var(--muted);
         }
 
-        .trends-stats {
+        .trends-header-stats {
             display: flex;
-            gap: 16px;
-            flex-shrink: 0;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
-        .trend-stat {
-            text-align: right;
-        }
+        .header-stat { text-align: right; }
 
-        .trend-stat-label {
+        .header-stat-label {
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
@@ -170,25 +171,22 @@
             margin-bottom: 2px;
         }
 
-        .trend-stat-value {
-            font-size: 18px;
+        .header-stat-value {
+            font-size: 17px;
             font-weight: 800;
             letter-spacing: -0.02em;
             color: var(--text);
         }
 
-        .trend-stat-value.up   { color: var(--green); }
-        .trend-stat-value.down { color: var(--red); }
+        .header-stat-value.up   { color: var(--green); }
+        .header-stat-value.down { color: var(--red); }
 
-        /* ── Range selector ── */
+        /* ── Range bar ── */
         .range-bar {
-            padding: 10px 20px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             gap: 6px;
-            flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
         .range-label {
@@ -197,7 +195,7 @@
             text-transform: uppercase;
             letter-spacing: 0.07em;
             color: var(--muted);
-            margin-right: 4px;
+            margin-right: 2px;
         }
 
         .range-btn {
@@ -214,29 +212,75 @@
             font-family: inherit;
         }
 
-        .range-btn:hover { border-color: #93c5fd; color: var(--blue); }
+        .range-btn:hover  { border-color: #93c5fd; color: var(--blue); }
+        .range-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 
-        .range-btn.active {
-            background: var(--blue);
-            border-color: var(--blue);
-            color: #fff;
+        /* ── Chart grid ── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
         }
 
-        /* ── Chart canvas area ── */
-        .chart-wrap {
-            flex: 1;
-            padding: 16px 20px 12px;
-            min-height: 0;
+        .charts-grid .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* ── Chart card ── */
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: box-shadow 0.2s;
+        }
+
+        .chart-card:hover { box-shadow: var(--shadow-md); }
+
+        .chart-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .chart-card-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .chart-card-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        .chart-card-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: var(--radius-full);
+            background: var(--blue-soft);
+            color: var(--blue);
+            border: 1px solid var(--blue-mid);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .chart-canvas-wrap {
             position: relative;
+            height: 200px;
         }
 
-        .chart-canvas-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
+        .chart-canvas-wrap.tall { height: 260px; }
 
-        /* ── Empty / loading states ── */
+        /* ── Placeholder / loading ── */
         .chart-placeholder {
             position: absolute;
             inset: 0;
@@ -244,22 +288,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            color: var(--muted);
+            gap: 8px;
         }
 
-        .chart-placeholder-icon { font-size: 40px; opacity: 0.4; }
-
-        .chart-placeholder-text {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--muted);
-        }
-
-        .chart-placeholder-sub {
-            font-size: 12px;
-            color: var(--muted-light);
-        }
+        .chart-placeholder-icon  { font-size: 32px; opacity: 0.3; }
+        .chart-placeholder-text  { font-size: 13px; font-weight: 600; color: var(--muted); }
 
         .chart-loading {
             position: absolute;
@@ -268,15 +301,14 @@
             align-items: center;
             justify-content: center;
             background: rgba(248,250,252,0.85);
-            backdrop-filter: blur(4px);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-md);
         }
 
         .chart-loading.show { display: flex; }
 
         .spinner {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border: 3px solid var(--blue-mid);
             border-top-color: var(--blue);
             border-radius: 50%;
@@ -285,7 +317,7 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── Nav link in topbar ── */
+        /* ── Nav ── */
         .nav-links {
             display: flex;
             align-items: center;
@@ -302,7 +334,7 @@
             transition: background 0.12s, color 0.12s;
         }
 
-        .nav-link:hover { background: var(--bg); color: var(--text); }
+        .nav-link:hover  { background: var(--bg); color: var(--text); }
         .nav-link.active { background: var(--blue-soft); color: var(--blue); }
 
         /* ── Error ── */
@@ -314,17 +346,18 @@
             padding: 10px 14px;
             font-size: 12px;
             color: var(--red);
-            margin: 12px 20px 0;
         }
 
         .fetch-error.show { display: block; }
 
-        /* responsive */
-        @media (max-width: 860px) {
-            .trends-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-            .trends-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 220px; }
-            .zip-list { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding: 8px; gap: 6px; }
-            .zip-item { margin-bottom: 0; white-space: nowrap; flex-shrink: 0; }
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .trends-body   { grid-template-columns: 1fr; }
+            .trends-panel  { position: static; height: auto; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+            .zip-list      { flex-direction: row; display: flex; flex-wrap: nowrap; overflow-x: auto; padding: 8px; gap: 6px; }
+            .zip-item      { margin-bottom: 0; flex-shrink: 0; }
+            .charts-grid   { grid-template-columns: 1fr; }
+            .charts-grid .chart-card.full-width { grid-column: 1; }
         }
     </style>
 </head>
@@ -335,24 +368,23 @@
             <div class="brand"><span>Dallas</span>Homes</div>
             <nav class="nav-links">
                 <a href="/" class="nav-link">🗺 Explorer</a>
-                <a href="trends.html" class="nav-link active">📈 Trends</a>
+                <a href="/trends" class="nav-link active">📈 Trends</a>
             </nav>
             <div class="topbar-badge">Dallas County</div>
         </header>
 
-        <!-- Toolbar reused as a filter bar -->
         <section class="toolbar">
-            <span class="toolbar-label">View</span>
-            <div class="toolbar-controls">
-                <select id="metricSelect" class="toolbar-select">
-                    <option value="zhvi" selected>Home Value (ZHVI)</option>
-                </select>
+            <span class="range-label">Range</span>
+            <div class="range-bar">
+                <button class="range-btn" data-years="3">3Y</button>
+                <button class="range-btn" data-years="5">5Y</button>
+                <button class="range-btn active" data-years="all">All</button>
             </div>
             <div class="toolbar-divider"></div>
             <span class="toolbar-label">Compare ZIP</span>
             <div class="toolbar-controls">
                 <input id="compareZip" type="text" maxlength="5" placeholder="e.g. 75201"
-                    style="height:34px;border:1px solid var(--border);border-radius:var(--radius-full);padding:0 12px;font-size:12px;font-weight:600;color:var(--text-2);background:var(--bg);outline:none;font-family:inherit;width:110px;" />
+                    style="height:34px;border:1px solid var(--border);border-radius:var(--radius-full);padding:0 12px;font-size:12px;font-weight:600;color:var(--text-2);background:var(--bg);outline:none;font-family:inherit;width:100px;" />
                 <button id="compareBtn" class="toolbar-apply">Add</button>
                 <button id="clearCompareBtn" class="toolbar-apply" style="background:#6b7280;display:none;">Clear</button>
             </div>
@@ -363,117 +395,273 @@
             <!-- Left: ZIP list -->
             <aside class="trends-panel">
                 <div class="trends-panel-header">
-                    <h2>Dallas ZIP Codes</h2>
-                    <p>Click any ZIP to view its price history</p>
+                    <h2>ZIP Codes</h2>
+                    <p>Select a ZIP to view all historical charts</p>
                 </div>
                 <div class="zip-search-wrap">
-                    <input id="zipFilter" type="text" class="zip-search-input" placeholder="Filter ZIPs…" maxlength="5" />
+                    <input id="zipFilter" type="text" class="zip-search-input" placeholder="Filter ZIPs..." maxlength="5" />
                 </div>
                 <div class="zip-list" id="zipList">
-                    <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Loading ZIP codes…</div>
+                    <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;">Loading...</div>
                 </div>
             </aside>
 
-            <!-- Right: Chart -->
+            <!-- Right: Charts -->
             <div class="trends-main">
-                <div class="trends-top">
-                    <div class="trends-title-group">
-                        <h1 id="chartTitle">Select a ZIP Code</h1>
-                        <p id="chartSubtitle">Choose a ZIP from the left panel to view its price history</p>
-                    </div>
-                    <div class="trends-stats" id="trendStats" style="display:none;">
-                        <div class="trend-stat">
-                            <div class="trend-stat-label">Current Value</div>
-                            <div class="trend-stat-value" id="statCurrent">--</div>
-                        </div>
-                        <div class="trend-stat">
-                            <div class="trend-stat-label">Peak Value</div>
-                            <div class="trend-stat-value" id="statPeak">--</div>
-                        </div>
-                        <div class="trend-stat">
-                            <div class="trend-stat-label">5-Year Change</div>
-                            <div class="trend-stat-value" id="statChange">--</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="range-bar">
-                    <span class="range-label">Range</span>
-                    <button class="range-btn" data-years="3">3Y</button>
-                    <button class="range-btn" data-years="5">5Y</button>
-                    <button class="range-btn" data-years="10">10Y</button>
-                    <button class="range-btn active" data-years="all">All</button>
-                </div>
 
                 <div class="fetch-error" id="fetchError"></div>
 
-                <div class="chart-wrap">
-                    <div class="chart-canvas-container">
-                        <div class="chart-placeholder" id="chartPlaceholder">
-                            <div class="chart-placeholder-icon">📊</div>
-                            <div class="chart-placeholder-text">No ZIP selected</div>
-                            <div class="chart-placeholder-sub">Pick a ZIP code from the left panel</div>
+                <!-- Header with summary stats -->
+                <div class="trends-header" id="trendsHeader">
+                    <div class="trends-header-left">
+                        <h1 id="headerTitle">Select a ZIP Code</h1>
+                        <p id="headerSubtitle">Choose a ZIP from the left panel to view historical market data</p>
+                    </div>
+                    <div class="trends-header-stats" id="headerStats" style="display:none;">
+                        <div class="header-stat">
+                            <div class="header-stat-label">Current ZHVI</div>
+                            <div class="header-stat-value" id="statZhvi">--</div>
                         </div>
-                        <div class="chart-loading" id="chartLoading">
-                            <div class="spinner"></div>
+                        <div class="header-stat">
+                            <div class="header-stat-label">Peak Value</div>
+                            <div class="header-stat-value" id="statPeak">--</div>
                         </div>
-                        <canvas id="priceChart" style="display:none;"></canvas>
+                        <div class="header-stat">
+                            <div class="header-stat-label">5Y Change</div>
+                            <div class="header-stat-value" id="statChange">--</div>
+                        </div>
+                        <div class="header-stat">
+                            <div class="header-stat-label">Avg School Rating</div>
+                            <div class="header-stat-value" id="statSchool">--</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
+                <!-- Charts grid -->
+                <div class="charts-grid">
+
+                    <!-- Home Value (full width) -->
+                    <div class="chart-card full-width">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Home Value (ZHVI)</div>
+                                <div class="chart-card-subtitle">Zillow Home Value Index — monthly median home value</div>
+                            </div>
+                            <div class="chart-card-badge" id="zhviBadge">2000 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap tall">
+                            <div class="chart-placeholder" id="zhviPlaceholder">
+                                <div class="chart-placeholder-icon">🏠</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="zhviLoading"><div class="spinner"></div></div>
+                            <canvas id="zhviChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Mortgage Rate -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Mortgage Rate</div>
+                                <div class="chart-card-subtitle">30-year fixed rate — monthly average</div>
+                            </div>
+                            <div class="chart-card-badge" id="mortgageBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="mortgagePlaceholder">
+                                <div class="chart-placeholder-icon">📉</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="mortgageLoading"><div class="spinner"></div></div>
+                            <canvas id="mortgageChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Unemployment Rate -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Unemployment Rate</div>
+                                <div class="chart-card-subtitle">Dallas metro — monthly %</div>
+                            </div>
+                            <div class="chart-card-badge" id="unemployBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="unemployPlaceholder">
+                                <div class="chart-placeholder-icon">👷</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="unemployLoading"><div class="spinner"></div></div>
+                            <canvas id="unemployChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Sales Count -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Sales Count</div>
+                                <div class="chart-card-subtitle">Monthly home sales — Dallas metro</div>
+                            </div>
+                            <div class="chart-card-badge" id="salesBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="salesPlaceholder">
+                                <div class="chart-placeholder-icon">🏡</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="salesLoading"><div class="spinner"></div></div>
+                            <canvas id="salesChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Inventory -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Inventory</div>
+                                <div class="chart-card-subtitle">Active listings available — monthly</div>
+                            </div>
+                            <div class="chart-card-badge" id="inventoryBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="inventoryPlaceholder">
+                                <div class="chart-placeholder-icon">📦</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="inventoryLoading"><div class="spinner"></div></div>
+                            <canvas id="inventoryChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Violent Crime -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Violent Crime per 100k</div>
+                                <div class="chart-card-subtitle">Monthly offenses per 100,000 residents</div>
+                            </div>
+                            <div class="chart-card-badge" id="violentBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="violentPlaceholder">
+                                <div class="chart-placeholder-icon">🚨</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="violentLoading"><div class="spinner"></div></div>
+                            <canvas id="violentChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Property Crime -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Property Crime per 100k</div>
+                                <div class="chart-card-subtitle">Monthly offenses per 100,000 residents</div>
+                            </div>
+                            <div class="chart-card-badge" id="propCrimeBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="propCrimePlaceholder">
+                                <div class="chart-placeholder-icon">🔒</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="propCrimeLoading"><div class="spinner"></div></div>
+                            <canvas id="propCrimeChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Median Income -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Median Income</div>
+                                <div class="chart-card-subtitle">Household median income — yearly</div>
+                            </div>
+                            <div class="chart-card-badge" id="incomeBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="incomePlaceholder">
+                                <div class="chart-placeholder-icon">💰</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="incomeLoading"><div class="spinner"></div></div>
+                            <canvas id="incomeChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- School Rating -->
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <div>
+                                <div class="chart-card-title">Average School Rating</div>
+                                <div class="chart-card-subtitle">Mean school score (0–100) — yearly</div>
+                            </div>
+                            <div class="chart-card-badge" id="schoolBadge">2018 – 2024</div>
+                        </div>
+                        <div class="chart-canvas-wrap">
+                            <div class="chart-placeholder" id="schoolPlaceholder">
+                                <div class="chart-placeholder-icon">🎓</div>
+                                <div class="chart-placeholder-text">No ZIP selected</div>
+                            </div>
+                            <div class="chart-loading" id="schoolLoading"><div class="spinner"></div></div>
+                            <canvas id="schoolChart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        /* ── Config ── */
-        const BASE_URL = '';
+        const BASE_URL   = '';
+        const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
         /* ── State ── */
         let allZipcodes    = [];
         let activeZip      = null;
         let compareZip     = null;
-        let activeRecords  = [];
-        let compareRecords = [];
-        let chartInstance  = null;
+        let zhviRecords    = [];
+        let marketRecords  = [];
+        let cmpZhviRec     = [];
+        let cmpMarketRec   = [];
         let activeRange    = 'all';
+        let chartInstances = {};
 
         /* ── DOM ── */
-        const zipList        = document.getElementById('zipList');
-        const zipFilter      = document.getElementById('zipFilter');
-        const chartTitle     = document.getElementById('chartTitle');
-        const chartSubtitle  = document.getElementById('chartSubtitle');
-        const trendStats     = document.getElementById('trendStats');
-        const statCurrent    = document.getElementById('statCurrent');
-        const statPeak       = document.getElementById('statPeak');
-        const statChange     = document.getElementById('statChange');
-        const chartCanvas    = document.getElementById('priceChart');
-        const placeholder    = document.getElementById('chartPlaceholder');
-        const loadingOverlay = document.getElementById('chartLoading');
+        const zipListEl      = document.getElementById('zipList');
+        const zipFilterEl    = document.getElementById('zipFilter');
         const fetchError     = document.getElementById('fetchError');
         const compareInput   = document.getElementById('compareZip');
         const compareBtn     = document.getElementById('compareBtn');
         const clearCmpBtn    = document.getElementById('clearCompareBtn');
 
         /* ── Utilities ── */
-        function fmt$$(v) {
-            if (v == null) return '--';
-            return '$' + Math.round(v).toLocaleString('en-US');
+        function fmt$$(v)      { return v != null ? '$' + Math.round(v).toLocaleString() : null; }
+        function fmtPct(v)     { return v != null ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '--'; }
+        function fmtNum(v, d)  { return v != null && !isNaN(v) ? Number(v).toFixed(d ?? 1) : null; }
+        function showError(m)  { fetchError.textContent = m; fetchError.classList.add('show'); }
+        function hideError()   { fetchError.classList.remove('show'); }
+
+        function makeLabel(r) {
+            return MONTH_NAMES[r.month - 1] + ' ' + r.year;
         }
 
-        function fmtPct(v) {
-            if (v == null) return '--';
-            return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+        /* ── Filter by range ── */
+        function filterRecords(records) {
+            if (activeRange === 'all' || !records.length) return records;
+            const years  = parseInt(activeRange);
+            const last   = records[records.length - 1];
+            return records.filter(r =>
+                r.year > last.year - years ||
+                (r.year === last.year - years && r.month >= last.month)
+            );
         }
 
-        function showError(msg) {
-            fetchError.textContent = msg;
-            fetchError.classList.add('show');
-        }
-
-        function hideError() { fetchError.classList.remove('show'); }
-
-        /* ── Load ZIP list ── */
+        /* ── ZIP list ── */
         async function loadZipcodes() {
             try {
                 const res  = await fetch(BASE_URL + '/api/zipcodes');
@@ -481,58 +669,60 @@
                 allZipcodes = data.zipcodes || [];
                 renderZipList(allZipcodes);
             } catch {
-                zipList.innerHTML = '<div style="padding:16px;color:var(--red);font-size:12px;">Could not load ZIP codes. Is the server running?</div>';
+                zipListEl.innerHTML = '<div style="padding:12px;color:var(--red);font-size:12px;">Could not load ZIPs. Is the server running?</div>';
             }
         }
 
         function renderZipList(zips) {
-            if (!zips.length) {
-                zipList.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;">No ZIPs found.</div>';
-                return;
-            }
-            zipList.innerHTML = zips.map(z => `
+            zipListEl.innerHTML = zips.map(z => `
                 <div class="zip-item ${z === activeZip ? 'active' : ''}" data-zip="${z}">
                     <span class="zip-item-code">${z}</span>
-                    <span class="zip-item-value">${z === activeZip ? fmt$$(activeRecords.at(-1)?.zhvi) : ''}</span>
                 </div>
             `).join('');
-
-            zipList.querySelectorAll('.zip-item').forEach(el => {
+            zipListEl.querySelectorAll('.zip-item').forEach(el => {
                 el.addEventListener('click', () => selectZip(el.dataset.zip));
             });
         }
 
-        zipFilter.addEventListener('input', () => {
-            const q = zipFilter.value.trim();
+        zipFilterEl.addEventListener('input', () => {
+            const q = zipFilterEl.value.trim();
             renderZipList(q ? allZipcodes.filter(z => z.startsWith(q)) : allZipcodes);
         });
 
-        /* ── Fetch ZHVI ── */
-        async function fetchZhvi(zip) {
-            const res = await fetch(BASE_URL + '/api/zhvi/' + zip);
-            if (!res.ok) throw new Error('API ' + res.status);
-            const data = await res.json();
-            return data.records || [];
+        /* ── Fetch data ── */
+        async function fetchZhvi(zip)   {
+            const r = await fetch(BASE_URL + '/api/zhvi/' + zip);
+            if (!r.ok) throw new Error('ZHVI fetch failed');
+            return (await r.json()).records || [];
         }
 
-        /* ── Select a ZIP ── */
+        async function fetchMarket(zip) {
+            const r = await fetch(BASE_URL + '/api/market/' + zip);
+            if (!r.ok) throw new Error('Market fetch failed');
+            return (await r.json()).records || [];
+        }
+
+        /* ── Select ZIP ── */
         async function selectZip(zip) {
             if (zip === activeZip) return;
             activeZip = zip;
             hideError();
-            setChartLoading(true);
+            setAllLoading(true);
 
             try {
-                activeRecords = await fetchZhvi(zip);
-                renderChart();
-                updateStats();
+                [zhviRecords, marketRecords] = await Promise.all([
+                    fetchZhvi(zip),
+                    fetchMarket(zip)
+                ]);
+                renderAllCharts();
+                updateHeaderStats();
                 renderZipList(allZipcodes.filter(z =>
-                    !zipFilter.value.trim() || z.startsWith(zipFilter.value.trim())
+                    !zipFilterEl.value.trim() || z.startsWith(zipFilterEl.value.trim())
                 ));
-            } catch (err) {
-                showError('Could not load data for ZIP ' + zip + '. (' + err.message + ')');
+            } catch(e) {
+                showError('Could not load data for ZIP ' + zip + '. (' + e.message + ')');
             } finally {
-                setChartLoading(false);
+                setAllLoading(false);
             }
         }
 
@@ -540,30 +730,29 @@
         compareBtn.addEventListener('click', async () => {
             const zip = compareInput.value.trim();
             if (!zip || zip.length < 5) return;
-            if (!allZipcodes.includes(zip)) {
-                showError('ZIP ' + zip + ' is not in the dataset.');
-                return;
-            }
+            if (!allZipcodes.includes(zip)) { showError('ZIP ' + zip + ' not in dataset.'); return; }
             hideError();
-            setChartLoading(true);
+            setAllLoading(true);
             try {
-                compareZip     = zip;
-                compareRecords = await fetchZhvi(zip);
+                [cmpZhviRec, cmpMarketRec] = await Promise.all([
+                    fetchZhvi(zip),
+                    fetchMarket(zip)
+                ]);
+                compareZip = zip;
                 clearCmpBtn.style.display = 'inline-flex';
-                if (activeZip) renderChart();
-            } catch (err) {
-                showError('Could not load compare ZIP. (' + err.message + ')');
+                if (activeZip) renderAllCharts();
+            } catch(e) {
+                showError('Could not load compare ZIP. (' + e.message + ')');
             } finally {
-                setChartLoading(false);
+                setAllLoading(false);
             }
         });
 
         clearCmpBtn.addEventListener('click', () => {
-            compareZip     = null;
-            compareRecords = [];
+            compareZip = null; cmpZhviRec = []; cmpMarketRec = [];
             compareInput.value = '';
             clearCmpBtn.style.display = 'none';
-            if (activeZip) renderChart();
+            if (activeZip) renderAllCharts();
         });
 
         /* ── Range buttons ── */
@@ -572,164 +761,283 @@
                 document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 activeRange = btn.dataset.years;
-                if (activeZip) renderChart();
+                if (activeZip) renderAllCharts();
             });
         });
 
-        /* ── Filter records by range ── */
-        function filterByRange(records) {
-            if (activeRange === 'all') return records;
-            const years = parseInt(activeRange);
-            const latest = records.at(-1);
-            if (!latest) return records;
-            const cutoffYear  = latest.year - years;
-            const cutoffMonth = latest.month;
-            return records.filter(r =>
-                r.year > cutoffYear ||
-                (r.year === cutoffYear && r.month >= cutoffMonth)
-            );
-        }
+        /* ── Build a single chart ── */
+        function buildChart(canvasId, datasets, opts = {}) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
 
-        /* ── Build chart ── */
-        function buildLabels(records) {
-            return records.map(r => {
-                const d = new Date(r.year, r.month - 1);
-                return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-            });
-        }
+            if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
 
-        function renderChart() {
-            if (!activeZip || !activeRecords.length) return;
+            canvas.style.display = 'block';
+            document.getElementById(canvasId.replace('Chart', 'Placeholder')).style.display = 'none';
 
-            const filtered  = filterByRange(activeRecords);
-            const labels    = buildLabels(filtered);
-            const values    = filtered.map(r => Math.round(r.zhvi));
-
-            placeholder.style.display = 'none';
-            chartCanvas.style.display = 'block';
-
-            chartTitle.textContent    = 'ZIP ' + activeZip + ' — Home Value History';
-            chartSubtitle.textContent = filtered[0]
-                ? `${filtered[0].year} – ${filtered.at(-1).year} · ${filtered.length} data points`
-                : '';
-            trendStats.style.display  = 'flex';
-
-            const datasets = [{
-                label:           'ZIP ' + activeZip,
-                data:            values,
-                borderColor:     '#2563eb',
-                backgroundColor: 'rgba(37,99,235,0.08)',
-                borderWidth:     2,
-                pointRadius:     0,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: '#2563eb',
-                fill:            true,
-                tension:         0.3
-            }];
-
-            /* Compare dataset */
-            if (compareZip && compareRecords.length) {
-                const cFiltered = filterByRange(compareRecords);
-                datasets.push({
-                    label:           'ZIP ' + compareZip,
-                    data:            cFiltered.map(r => Math.round(r.zhvi)),
-                    borderColor:     '#7c3aed',
-                    backgroundColor: 'rgba(124,58,237,0.06)',
-                    borderWidth:     2,
-                    pointRadius:     0,
-                    pointHoverRadius: 5,
-                    pointHoverBackgroundColor: '#7c3aed',
-                    fill:            true,
-                    tension:         0.3
-                });
-            }
-
-            if (chartInstance) chartInstance.destroy();
-
-            chartInstance = new Chart(chartCanvas, {
+            chartInstances[canvasId] = new Chart(canvas, {
                 type: 'line',
-                data: { labels, datasets },
+                data: { labels: opts.labels, datasets },
                 options: {
                     responsive:          true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode:      'index',
-                        intersect: false
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: {
-                            display:  compareZip != null,
+                            display:  datasets.length > 1,
                             position: 'top',
-                            labels: {
-                                font:      { size: 12, weight: '700', family: 'Inter' },
-                                color:     '#374151',
-                                boxWidth:  12,
-                                boxHeight: 12,
-                                borderRadius: 3,
-                                padding:   16
-                            }
+                            labels: { font: { size: 11, weight: '700', family: 'Inter' }, color: '#374151', boxWidth: 10, boxHeight: 10, padding: 12 }
                         },
                         tooltip: {
                             backgroundColor: 'rgba(15,23,42,0.92)',
-                            titleFont:   { size: 12, weight: '700', family: 'Inter' },
-                            bodyFont:    { size: 13, weight: '600', family: 'Inter' },
-                            padding:     12,
-                            cornerRadius: 10,
+                            titleFont: { size: 11, weight: '700', family: 'Inter' },
+                            bodyFont:  { size: 12, weight: '600', family: 'Inter' },
+                            padding: 10, cornerRadius: 8,
                             callbacks: {
-                                label: ctx => '  ' + ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
+                                label: ctx => {
+                                    const v = ctx.parsed.y;
+                                    if (v == null) return null;
+                                    const prefix = opts.prefix || '';
+                                    const suffix = opts.suffix || '';
+                                    const val    = opts.money
+                                        ? '$' + Math.round(v).toLocaleString()
+                                        : v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                                    return '  ' + ctx.dataset.label + ': ' + prefix + val + suffix;
+                                }
                             }
                         }
                     },
                     scales: {
                         x: {
                             grid:  { display: false },
-                            ticks: {
-                                font:        { size: 11, family: 'Inter' },
-                                color:       '#9ca3af',
-                                maxTicksLimit: 10,
-                                maxRotation: 0
-                            },
+                            ticks: { font: { size: 10, family: 'Inter' }, color: '#9ca3af', maxTicksLimit: 8, maxRotation: 0 },
                             border: { color: '#e5e7eb' }
                         },
                         y: {
-                            position: 'left',
-                            grid:  { color: '#f1f5f9', drawBorder: false },
-                            ticks: {
-                                font:  { size: 11, family: 'Inter' },
-                                color: '#9ca3af',
-                                callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
-                            },
-                            border: { display: false }
+                            grid:   { color: '#f1f5f9' },
+                            border: { display: false },
+                            ticks:  {
+                                font: { size: 10, family: 'Inter' }, color: '#9ca3af',
+                                callback: v => opts.money
+                                    ? '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
+                                    : (opts.suffix ? v + opts.suffix : v)
+                            }
                         }
                     }
                 }
             });
         }
 
-        /* ── Update stat cards ── */
-        function updateStats() {
-            if (!activeRecords.length) return;
-
-            const latest   = activeRecords.at(-1);
-            const allVals  = activeRecords.map(r => r.zhvi);
-            const peak     = Math.max(...allVals);
-
-            /* 5-year change */
-            const now      = activeRecords.at(-1);
-            const fiveYrAgo = activeRecords.find(r =>
-                r.year === now.year - 5 && r.month === now.month
-            ) || activeRecords[0];
-            const pctChange = ((now.zhvi - fiveYrAgo.zhvi) / fiveYrAgo.zhvi) * 100;
-
-            statCurrent.textContent = fmt$$(latest.zhvi);
-            statPeak.textContent    = fmt$$(peak);
-            statChange.textContent  = fmtPct(pctChange);
-            statChange.className    = 'trend-stat-value ' + (pctChange >= 0 ? 'up' : 'down');
+        function makeDataset(label, data, color, fill = true) {
+            return {
+                label,
+                data,
+                borderColor:      color,
+                backgroundColor:  fill ? color.replace(')', ', 0.08)').replace('rgb', 'rgba') : 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill,
+                tension: 0.3
+            };
         }
 
-        /* ── Loading state ── */
-        function setChartLoading(on) {
-            loadingOverlay.classList.toggle('show', on);
+        /* ── Render all charts ── */
+        function renderAllCharts() {
+            renderZhviChart();
+            renderMortgageChart();
+            renderUnemployChart();
+            renderSalesChart();
+            renderInventoryChart();
+            renderViolentChart();
+            renderPropCrimeChart();
+            renderIncomeChart();
+            renderSchoolChart();
+        }
+
+        function renderZhviChart() {
+            const rec  = filterRecords(zhviRecords);
+            const labels = rec.map(makeLabel);
+            const datasets = [
+                makeDataset('ZIP ' + activeZip, rec.map(r => Math.round(r.zhvi)), 'rgb(37,99,235)')
+            ];
+            if (compareZip && cmpZhviRec.length) {
+                const cRec = filterRecords(cmpZhviRec);
+                datasets.push(makeDataset('ZIP ' + compareZip, cRec.map(r => Math.round(r.zhvi)), 'rgb(124,58,237)'));
+            }
+            const first = rec[0], last = rec[rec.length - 1];
+            document.getElementById('zhviBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('zhviChart', datasets, { labels, money: true });
+        }
+
+        function renderMortgageChart() {
+            const rec    = filterRecords(marketRecords);
+            const valid  = rec.filter(r => r.mortgage_rate != null);
+            const labels = valid.map(makeLabel);
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.mortgage_rate), 'rgb(234,88,12)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cv = filterRecords(cmpMarketRec).filter(r => r.mortgage_rate != null);
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.mortgage_rate), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('mortgageBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('mortgageChart', datasets, { labels, suffix: '%' });
+        }
+
+        function renderUnemployChart() {
+            const rec    = filterRecords(marketRecords);
+            const valid  = rec.filter(r => r.unemployment_rate != null);
+            const labels = valid.map(makeLabel);
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.unemployment_rate), 'rgb(220,38,38)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cv = filterRecords(cmpMarketRec).filter(r => r.unemployment_rate != null);
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.unemployment_rate), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('unemployBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('unemployChart', datasets, { labels, suffix: '%' });
+        }
+
+        function renderSalesChart() {
+            const rec    = filterRecords(marketRecords);
+            const valid  = rec.filter(r => r.sales_count != null);
+            const labels = valid.map(makeLabel);
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.sales_count), 'rgb(22,163,74)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cv = filterRecords(cmpMarketRec).filter(r => r.sales_count != null);
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.sales_count), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('salesBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('salesChart', datasets, { labels });
+        }
+
+        function renderInventoryChart() {
+            const rec    = filterRecords(marketRecords);
+            const valid  = rec.filter(r => r.inventory != null);
+            const labels = valid.map(makeLabel);
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.inventory), 'rgb(16,185,129)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cv = filterRecords(cmpMarketRec).filter(r => r.inventory != null);
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.inventory), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('inventoryBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('inventoryChart', datasets, { labels });
+        }
+
+        function renderViolentChart() {
+            const rec    = filterRecords(marketRecords);
+            const valid  = rec.filter(r => r.violent_offenses_per_100k != null);
+            const labels = valid.map(makeLabel);
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.violent_offenses_per_100k), 'rgb(239,68,68)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cv = filterRecords(cmpMarketRec).filter(r => r.violent_offenses_per_100k != null);
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.violent_offenses_per_100k), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('violentBadge').textContent = first && last ? first.year + ' - ' + last.year : 'N/A';
+            if (!valid.length) {
+                document.getElementById('violentPlaceholder').querySelector('.chart-placeholder-text').textContent = 'No crime data for this ZIP';
+                return;
+            }
+            buildChart('violentChart', datasets, { labels });
+        }
+
+        function renderPropCrimeChart() {
+            const rec    = filterRecords(marketRecords);
+            const valid  = rec.filter(r => r.property_offenses_per_100k != null);
+            const labels = valid.map(makeLabel);
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.property_offenses_per_100k), 'rgb(245,158,11)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cv = filterRecords(cmpMarketRec).filter(r => r.property_offenses_per_100k != null);
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.property_offenses_per_100k), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('propCrimeBadge').textContent = first && last ? first.year + ' - ' + last.year : 'N/A';
+            if (!valid.length) {
+                document.getElementById('propCrimePlaceholder').querySelector('.chart-placeholder-text').textContent = 'No crime data for this ZIP';
+                return;
+            }
+            buildChart('propCrimeChart', datasets, { labels });
+        }
+
+        function renderIncomeChart() {
+            const rec    = filterRecords(marketRecords);
+            // Income is yearly — deduplicate by year
+            const seen = new Set();
+            const valid = rec.filter(r => {
+                if (r.median_income == null || seen.has(r.year)) return false;
+                seen.add(r.year); return true;
+            });
+            const labels = valid.map(r => String(r.year));
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.median_income), 'rgb(139,92,246)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cseen = new Set();
+                const cv = filterRecords(cmpMarketRec).filter(r => {
+                    if (r.median_income == null || cseen.has(r.year)) return false;
+                    cseen.add(r.year); return true;
+                });
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.median_income), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('incomeBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('incomeChart', datasets, { labels, money: true });
+        }
+
+        function renderSchoolChart() {
+            const rec    = filterRecords(marketRecords);
+            const seen   = new Set();
+            const valid  = rec.filter(r => {
+                if (r.school_rating_mean == null || seen.has(r.year)) return false;
+                seen.add(r.year); return true;
+            });
+            const labels = valid.map(r => String(r.year));
+            const datasets = [makeDataset('ZIP ' + activeZip, valid.map(r => r.school_rating_mean), 'rgb(20,184,166)')];
+            if (compareZip && cmpMarketRec.length) {
+                const cseen = new Set();
+                const cv = filterRecords(cmpMarketRec).filter(r => {
+                    if (r.school_rating_mean == null || cseen.has(r.year)) return false;
+                    cseen.add(r.year); return true;
+                });
+                datasets.push(makeDataset('ZIP ' + compareZip, cv.map(r => r.school_rating_mean), 'rgb(124,58,237)'));
+            }
+            const first = valid[0], last = valid[valid.length - 1];
+            document.getElementById('schoolBadge').textContent = first && last ? first.year + ' - ' + last.year : '';
+            buildChart('schoolChart', datasets, { labels });
+        }
+
+        /* ── Header stats ── */
+        function updateHeaderStats() {
+            if (!zhviRecords.length) return;
+
+            document.getElementById('headerTitle').textContent    = 'ZIP ' + activeZip + ' — Market History';
+            document.getElementById('headerSubtitle').textContent =
+                'Historical data from ' + zhviRecords[0].year + ' to ' + zhviRecords[zhviRecords.length-1].year +
+                ' · ' + marketRecords.length + ' market data points';
+            document.getElementById('headerStats').style.display  = 'flex';
+
+            const latest  = zhviRecords[zhviRecords.length - 1];
+            const peak    = Math.max(...zhviRecords.map(r => r.zhvi));
+            const fiveAgo = zhviRecords.find(r => r.year === latest.year - 5 && r.month === latest.month) || zhviRecords[0];
+            const pct     = ((latest.zhvi - fiveAgo.zhvi) / fiveAgo.zhvi) * 100;
+            const school  = marketRecords.length ? marketRecords[marketRecords.length-1].school_rating_mean : null;
+
+            document.getElementById('statZhvi').textContent   = fmt$$(latest.zhvi);
+            document.getElementById('statPeak').textContent   = fmt$$(peak);
+            document.getElementById('statChange').textContent = fmtPct(pct);
+            document.getElementById('statChange').className   = 'header-stat-value ' + (pct >= 0 ? 'up' : 'down');
+            document.getElementById('statSchool').textContent = school != null ? fmtNum(school, 1) + '/100' : 'N/A';
+        }
+
+        /* ── Loading states ── */
+        const CHART_IDS = ['zhvi','mortgage','unemploy','sales','inventory','violent','propCrime','income','school'];
+
+        function setAllLoading(on) {
+            CHART_IDS.forEach(id => {
+                const el = document.getElementById(id + 'Loading');
+                if (el) el.classList.toggle('show', on);
+            });
         }
 
         /* ── Init ── */
