@@ -22,7 +22,7 @@
             <div class="search-shell">
                 <div class="search-box">
                     <span style="font-size:18px;">📍</span>
-                    <input id="searchInput" type="text" value="dallas" placeholder="Search city, address, or ZIP code" autocomplete="off" />
+                    <input id="searchInput" type="text" value="dallas" placeholder="Search city,or ZIP code" autocomplete="off" />
                     <button id="clearBtn" class="clear-btn" aria-label="Clear search">✕</button>
                     <button id="searchBtn" class="search-btn" aria-label="Search">🔎</button>
                 </div>
@@ -83,11 +83,11 @@
                         Dallas County only. Click any ZIP code on the map to load predictions.
                     </div>
                     <div id="dataAsOf" style="display:none;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.6;">
-                        📊 Market data as of <strong id="dataAsOfText">--</strong>
+                         Market data as of <strong id="dataAsOfText">--</strong>
                         &nbsp;·&nbsp;
-                        🏠 ZHVI as of <strong id="dataAsOfZhvi">--</strong>
+                         ZHVI as of <strong id="dataAsOfZhvi">--</strong>
                         &nbsp;·&nbsp;
-                        🔮 Predictions: next 3 &amp; 6 months
+                         Predictions: next 3 &amp; 6 months
                     </div>
                 </div>
 
@@ -150,21 +150,10 @@
     </div>
 
     <script>
-        /* ================================================================
-           CONFIG — update BASE_URL to match your FastAPI server
-           ================================================================
-           Local dev:   const BASE_URL = 'http://localhost:8000';
-           Deployed:    const BASE_URL = 'https://your-api-domain.com';
-           ================================================================ */
+    
         const BASE_URL = '';
 
-        /* ================================================================
-           GOOGLE MAPS  — interactive ZIP boundary map
-           ================================================================
-           Uses the Google Maps JavaScript API with the Census Bureau's
-           TIGERweb WMS to draw ZIP code boundaries as clickable polygons.
-           Clicking a ZIP auto-fetches predictions from the backend.
-           ================================================================ */
+       
 
         const DALLAS_CENTER  = { lat: 32.7767, lng: -96.7970 };
         let   gmap           = null;   // Google Map instance
@@ -238,7 +227,7 @@
         }
 
         function geojsonCoordsToLatLng(coords) {
-            // GeoJSON coords are [lng, lat] — Google wants {lat, lng}
+            
             return coords.map(ring =>
                 ring.map(pt => ({ lat: pt[1], lng: pt[0] }))
             );
@@ -323,7 +312,7 @@
                 clearCityHighlights();
             }
 
-            // Reset previous active polygon — revert to orange if it was in the city, else blue
+            
             if (activePolygon && activePolygon !== polygon) {
                 const prevEntry = Object.entries(zipPolygons).find(([z, v]) => v.polygon === activePolygon);
                 if (prevEntry) {
@@ -357,7 +346,7 @@
             if (!zip || !zipPolygons[zip]) return;
             const { polygon } = zipPolygons[zip];
             selectZipFromMap(zip, polygon);
-            // Pan to center of ZIP
+            
             const bounds = new google.maps.LatLngBounds();
             polygon.getPaths().forEach(path => path.forEach(pt => bounds.extend(pt)));
             gmap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
@@ -459,30 +448,6 @@
                 'Map is now showing ' + title + '. Press Apply to fetch predictions.';
         }
 
-        /* ================================================================
-           FASTAPI INTEGRATION  (branch: kenya/api-backend)
-           ================================================================
-           All endpoints are GET requests — no request body needed.
-
-           GET /api/predictions/{zipcode}
-               → { prediction_3mo, prediction_6mo, ... }
-
-           GET /api/market/{zipcode}
-               → full market snapshot (mortgage, unemployment, income, etc.)
-
-           GET /api/market/{zipcode}/latest
-               → most recent single data point
-
-           GET /api/zhvi/{zipcode}
-               → historical home values
-
-           Run the server with:
-               cd proj_experimental_model_test
-               uvicorn api.main:app --reload --port 8000
-
-           Serve this HTML from port 5173 so CORS passes:
-               python -m http.server 5173
-           ================================================================ */
 
         async function apiGet(path) {
             const response = await fetch(BASE_URL + path);
@@ -508,8 +473,9 @@
                                        violent_offenses_per_100k,
                                        property_offenses_per_100k }
                } */
-            const mi           = predictions.market_information ?? {};
-            const af           = predictions.additional_factors  ?? {};
+            
+            const mi           = predictions.market_information ?? market?.market_information ?? {};
+            const af           = predictions.additional_factors  ?? market?.additional_factors ?? {};
 
             const currentZhvi  = predictions.current_zhvi ?? null;
             const pred3        = predictions.prediction_3m ?? null;
@@ -571,9 +537,9 @@
             /* ── Data freshness indicator ── */
             const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-            // Market data date (from /api/market/latest)
-            const mktYear   = market?.year  ?? predictions.year  ?? null;
-            const mktMonth  = market?.month ?? predictions.month ?? null;
+            // Market data date (from predictions endpoint)
+            const mktYear   = predictions.year  ?? null;
+            const mktMonth  = predictions.month ?? null;
             if (mktYear && mktMonth) {
                 document.getElementById('dataAsOfText').textContent =
                     MONTH_NAMES[mktMonth - 1] + ' ' + mktYear;
@@ -600,23 +566,29 @@
             setLoading(true);
             hideError();
 
-            try {
-                /* Use latest data — no year/month needed */
-                const predPath = '/api/predictions/' + zip;
-                const mktPath  = '/api/market/' + zip + '/latest';
-
-                const [predictions, market] = await Promise.all([
-                    apiGet(predPath),
-                    apiGet(mktPath).catch(() => null)
-                ]);
-                applyPredictionData(predictions, market, currentLocationTitle);
-            } catch (err) {
-                /* Friendly message when selected year/month has no data */
-                showError('Cannot reach the API. Make sure the server is running at ' + BASE_URL + '. (' + err.message + ')');
-                console.error('[API]', err);
-            } finally {
-                setLoading(false);
+            // Retry up to 4 times with short delays
+            let lastErr = null;
+            const delays = [100, 200, 300, 500];
+            for (let attempt = 0; attempt < 4; attempt++) {
+                try {
+                    const predictions = await apiGet('/api/predictions/' + zip);
+                    applyPredictionData(predictions, null, currentLocationTitle);
+                    setLoading(false);
+                    return;
+                } catch (err) {
+                    lastErr = err;
+                    if (attempt < 3) await new Promise(r => setTimeout(r, delays[attempt]));
+                }
             }
+
+            // All 3 attempts failed
+            if (lastErr.message.includes('404')) {
+                showError('No data available for ZIP ' + zip + ' in the database.');
+            } else {
+                showError('Cannot reach the API. Make sure the server is running. (' + lastErr.message + ')');
+            }
+            console.error('[API]', lastErr);
+            setLoading(false);
         }
 
         /* ================================================================
@@ -743,7 +715,6 @@
 
         /* ================================================================
            CITY HIGHLIGHT — orange highlight for ZIPs in a searched city
-           Uses direct ZIP-to-city mapping from zipcode_city.csv
            ================================================================ */
         const STYLE_CITY       = { strokeColor: '#f97316', strokeWeight: 2.5, strokeOpacity: 0.9, fillColor: '#fb923c', fillOpacity: 0.18 };
         const STYLE_CITY_HOVER = { strokeColor: '#ea580c', strokeWeight: 3,   strokeOpacity: 1,   fillColor: '#f97316', fillOpacity: 0.28 };
@@ -854,7 +825,7 @@
         function applyResolvedLocation(resolved) {
             clearSuggestions();
 
-            // If it's a ZIP code — highlight it directly
+           
             if (resolved.zipcode && /^\d{5}$/.test(resolved.zipcode)) {
                 clearCityHighlights();
                 searchInput.value    = resolved.zipcode;
@@ -865,7 +836,7 @@
                 return;
             }
 
-            // Otherwise treat as a city search — highlight all ZIPs in that city
+            
             const cityName = resolved.title || searchInput.value.trim();
             highlightCityZips(cityName);
         }
@@ -874,12 +845,12 @@
             const rawQuery = searchInput.value.trim();
             if (!rawQuery) return;
 
-            // If it looks like a ZIP code, resolve normally
+            
             if (/^\d{5}$/.test(rawQuery.replace(/\s/g, ''))) {
                 const resolved = await resolveLocationName(rawQuery);
                 applyResolvedLocation(resolved);
             } else {
-                // Treat as city name — highlight ZIPs in that city
+                
                 highlightCityZips(rawQuery);
                 clearSuggestions();
             }
