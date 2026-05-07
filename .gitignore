@@ -2,6 +2,7 @@
 # datasets
 proj_experimental_model_test/data_raw
 proj_experimental_model_test/data_proc
+proj_experimental_model_test/real_estate_archive.db
 *.csv
 
 # pychache

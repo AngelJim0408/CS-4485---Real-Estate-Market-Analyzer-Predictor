@@ -19,6 +19,7 @@ def create_feature_vectors(df: pd.DataFrame):
     Function must be called AFTER merging dataframes into main master dataframe.
 
     Features incl: lag, rolling mean/std, year-over-year % change, ratios, seasonality, and target
+    For now keep base features, only use above based on validation results (too many features can cause overfitting, and some features may not be useful)
     """
     # Make sure dataframe is sorted by (zip, year, month)
     df = forward_fill_zip(df)
@@ -158,11 +159,6 @@ def create_feature_vectors(df: pd.DataFrame):
     df["zipcode"] = zipcodes
 
     return df
-
-# split using time series split
-def get_time_split(df: pd.DataFrame, target_name: str, n_splits=3):
-
-    return
 
 def get_master_df(db_path=None):
     """
