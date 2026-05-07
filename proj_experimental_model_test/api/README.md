@@ -35,6 +35,7 @@ cd proj_experimental_model_test
 
 # Install dependencies
 pip install fastapi uvicorn joblib scikit-learn pandas
+pip install apscheduler
 
 # Run the data pipeline first (if not already done)
 # This collects data, processes it, and builds feature vectors into MASTER.csv
