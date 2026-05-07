@@ -21,14 +21,14 @@ uvicorn api.main:app --reload --port 8000 # if want to run fastapi in local.
 Download the Entire folder named "data_raw", and place the folder in folder: proj_experimental_model_test
 
 # Code Documentation
-- [#data-collection]
-- [#data-normalization]
-- [#feature-engineering]
-- [#ml-model]
-- [#real-estate-data-class]
-- [#data-access-service-(database.py)]
-- [#fastapi]
-- [#testing-programs]
+- [Data Collection](#data-collection)
+- [Data Normalization](#data-normalization)
+- [Feature Engineering](#feature-engineering)
+- [ML Model](#ml-model)
+- [Real Estate Data Class](#real-estate-data-class)
+- [Data Access Service](#data-access-service)
+- [FastAPI](#fastapi)
+- [Testing Programs](#testing-programs)
 
 
 ## Data Collection
