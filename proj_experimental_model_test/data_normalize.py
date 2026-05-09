@@ -195,9 +195,8 @@ def build_merged_df( # if zipcode not column, means data for whole county
     for df in county_month_list:
         main_df = main_df.merge(df, on=['year','month'], how='left')
 
-
     # Join by year + zip
-    main_df = main_df.merge(income, on=['zipcode','year'])
+    main_df = main_df.merge(income, on=['zipcode','year'], how='left')
 
     ## schools can have multiple per zip, aggregate the school campuses
     school["score"] = pd.to_numeric(school["score"], errors="coerce")
@@ -221,7 +220,7 @@ def build_merged_df( # if zipcode not column, means data for whole county
     main_df = main_df.merge(property_crime_agg, on=['zipcode','year','month'], how='left')
 
     # Need to forward fill for data that only show yearly results
-    main_df = main_df.sort_values(["zipcode", "year", "month"]).reset_index(drop=True) # sort by zipcode, then year, then month so we group these in order
+    main_df = main_df.sort_values(["zipcode", "year", "month"]).reset_index() # sort by zipcode, then year, then month so we group these in order
     cols_to_fill = ['median_income','total_population','school_rating_mean','school_rating_max','school_count']
 
     main_df[cols_to_fill] = main_df.groupby('zipcode')[cols_to_fill].ffill()
