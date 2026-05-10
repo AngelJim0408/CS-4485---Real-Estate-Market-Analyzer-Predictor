@@ -144,6 +144,40 @@
                         </div>
                     </div>
 
+
+                    <!-- Available ZIP codes -->
+                    <div class="detail-card" id="zipBrowserCard">
+                        <p class="section-title">Available ZIP Codes</p>
+                        <div style="margin-bottom:8px;">
+                            <input id="zipBrowserFilter" type="text" maxlength="5" placeholder="Filter ZIPs..."
+                                style="width:100%;height:32px;border:1px solid var(--border);border-radius:var(--radius-full);padding:0 12px;font-size:12px;font-weight:500;color:var(--text);background:var(--bg);outline:none;font-family:inherit;box-sizing:border-box;" />
+                        </div>
+                        <div id="zipBrowserList" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:200px;overflow-y:auto;">
+                            <div style="color:var(--muted);font-size:12px;grid-column:1/-1;text-align:center;padding:8px;">Loading ZIPs...</div>
+                        </div>
+                        <style>
+                        .zip-btn {
+                            border: 1px solid var(--border);
+                            border-radius: 8px;
+                            padding: 6px 4px;
+                            background: var(--bg);
+                            font-size: 11px;
+                            font-weight: 700;
+                            color: var(--text-2);
+                            cursor: pointer;
+                            text-align: center;
+                            font-family: inherit;
+                            transition: all 0.12s;
+                        }
+                        .zip-btn:hover {
+                            background: var(--blue-soft);
+                            color: var(--blue);
+                            border-color: var(--blue-mid);
+                        }
+                        </style>
+                        <div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:center;" id="zipBrowserCount"></div>
+                    </div>
+
                 </div>
             </section>
         </main>
@@ -157,7 +191,7 @@
 
         const DALLAS_CENTER  = { lat: 32.7767, lng: -96.7970 };
         let   gmap           = null;   // Google Map instance
-        let   zipPolygons    = {};     // zip -> google.maps.Polygon
+        let   zipPolygons    = {};     
         let   activePolygon  = null;
         let   knownZips      = [];
         let   infoWindow     = null;
@@ -202,7 +236,7 @@
         }
 
         async function loadZipBoundaries() {
-            // Census TIGERweb — query ZIP polygons within Dallas County bounding box
+            
             const bbox = '-97.25,32.45,-96.25,33.10';
             const url  = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/2/query' +
                 '?where=1%3D1' +
@@ -453,7 +487,7 @@
             const response = await fetch(BASE_URL + path);
             if (!response.ok) {
                 const errText = await response.text().catch(() => '');
-                throw new Error('API ' + response.status + (errText ? ': ' + errText : ''));
+                throw new Error('API ' + response.status + ': ' + errText);
             }
             return await response.json();
         }
@@ -461,18 +495,7 @@
         function applyPredictionData(predictions, market, title) {
             hideError();
 
-            /* predictions  → GET /api/predictions/{zipcode}
-               Actual response shape:
-               {
-                 current_zhvi, prediction_3m, prediction_6m,
-                 pct_change_3m, pct_change_6m,
-                 market_information: { mortgage_rate, unemployment_rate,
-                                       median_income, inventory,
-                                       sales_count, new_listings },
-                 additional_factors: { school_rating_mean,
-                                       violent_offenses_per_100k,
-                                       property_offenses_per_100k }
-               } */
+            
             
             const mi           = predictions.market_information ?? market?.market_information ?? {};
             const af           = predictions.additional_factors  ?? market?.additional_factors ?? {};
@@ -566,7 +589,7 @@
             setLoading(true);
             hideError();
 
-            // Retry up to 4 times with short delays
+            // Retry up to 4 times with short delays 
             let lastErr = null;
             const delays = [100, 200, 300, 500];
             for (let attempt = 0; attempt < 4; attempt++) {
@@ -577,15 +600,15 @@
                     return;
                 } catch (err) {
                     lastErr = err;
+                    
+                    if (err.message.includes('API 404')) break;
                     if (attempt < 3) await new Promise(r => setTimeout(r, delays[attempt]));
                 }
             }
 
             // All 3 attempts failed
             if (lastErr.message.includes('404')) {
-                // Extract the API's detail message
-                const match = lastErr.message.match(/"detail"\s*:\s*"([^"]+)"/);
-                showError(match ? match[1] : 'No data available for ZIP ' + zip + ' in the database.');
+                showError('No data available for ZIP ' + zip + ' in the database.');
             } else {
                 showError('Cannot reach the API. Make sure the server is running. (' + lastErr.message + ')');
             }
@@ -827,14 +850,26 @@
         function applyResolvedLocation(resolved) {
             clearSuggestions();
 
-           
+            // Always check raw input — if it's a 5-digit ZIP, use it directly
+            const rawInput = searchInput.value.trim().replace(/\s/g, '');
+            if (/^\d{5}$/.test(rawInput)) {
+                resolved.zipcode = rawInput;
+            }
+
             if (resolved.zipcode && /^\d{5}$/.test(resolved.zipcode)) {
                 clearCityHighlights();
-                searchInput.value    = resolved.zipcode;
-                currentZipcode       = resolved.zipcode;
-                currentLocationTitle = 'ZIP ' + resolved.zipcode;
+                const zip            = resolved.zipcode;
+                searchInput.value    = zip;
+                currentZipcode       = zip;
+                currentLocationTitle = 'ZIP ' + zip;
                 updateClearButton();
-                highlightZipOnMap(resolved.zipcode);
+                resetPanels('ZIP ' + zip);
+                // Try map highlight, otherwise call API directly (handles non-Dallas ZIPs)
+                if (zipPolygons[zip]) {
+                    highlightZipOnMap(zip);
+                } else {
+                    runPrediction();
+                }
                 return;
             }
 
@@ -849,8 +884,14 @@
 
             
             if (/^\d{5}$/.test(rawQuery.replace(/\s/g, ''))) {
-                const resolved = await resolveLocationName(rawQuery);
-                applyResolvedLocation(resolved);
+                // Use typed ZIP directly — don't let Nominatim substitute a different ZIP
+                const typedZip = rawQuery.replace(/\s/g, '');
+                applyResolvedLocation({
+                    found:   true,
+                    title:   typedZip,
+                    query:   typedZip,
+                    zipcode: typedZip
+                });
             } else {
                 
                 highlightCityZips(rawQuery);
@@ -898,7 +939,14 @@
                 if (activeSuggestionIndex >= 0 && buttons[activeSuggestionIndex]) {
                     buttons[activeSuggestionIndex].click();
                 } else {
-                    updateMap();
+                    const val = searchInput.value.trim();
+                    if (/^\d{5}$/.test(val)) {
+                        // Direct ZIP entry — bypass Nominatim
+                        clearSuggestions();
+                        applyResolvedLocation({ found: true, title: val, query: val, zipcode: val });
+                    } else {
+                        updateMap();
+                    }
                 }
             } else if (event.key === 'Escape') {
                 clearSuggestions();
@@ -914,10 +962,76 @@
             }
         });
 
+        /* ── ZIP Browser ── */
+        let allZipCodes = [];
+
+        function renderZipBrowser(zips) {
+            const list = document.getElementById('zipBrowserList');
+            const count = document.getElementById('zipBrowserCount');
+            if (!list) return;
+
+            if (!zips.length) {
+                list.innerHTML = '<div style="color:var(--muted);font-size:12px;grid-column:1/-1;text-align:center;padding:8px;">No ZIPs found</div>';
+                return;
+            }
+
+            list.innerHTML = zips.map(function(z) {
+                var city = getCityForZip(z) || '';
+                var ttl = city ? z + ' - ' + city : z;
+                return '<button class="zip-btn" onclick="selectZipFromBrowser(\'' + z + '\')" title="' + ttl + '">' + z + '</button>';
+            }).join('');
+
+            if (count) count.textContent = zips.length + ' ZIP codes available · Click any to load predictions';
+        }
+
+        function selectZipFromBrowser(zip) {
+            if (!zipPolygons[zip]) {
+                // ZIP not on map yet — just set it and run prediction
+                currentZipcode = zip;
+                const zipCity = getCityForZip(zip);
+                currentLocationTitle = 'ZIP ' + zip;
+                searchInput.value = zipCity ? zip + ' - ' + zipCity : zip;
+                updateClearButton();
+                resetPanels('ZIP ' + zip);
+                if (zipCity) {
+                    document.getElementById('listingSubtitle').textContent =
+                        zipCity + ', TX  |  Dallas County  |  Click another ZIP to compare.';
+                }
+                runPrediction();
+                return;
+            }
+            const { polygon } = zipPolygons[zip];
+            selectZipFromMap(zip, polygon);
+            // Pan to ZIP
+            const bounds = new google.maps.LatLngBounds();
+            polygon.getPaths().forEach(path => path.forEach(pt => bounds.extend(pt)));
+            gmap.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+        }
+
+        async function loadZipBrowser() {
+            try {
+                const res = await fetch(BASE_URL + '/api/zipcodes');
+                const data = await res.json();
+                allZipCodes = data.zipcodes || [];
+                renderZipBrowser(allZipCodes);
+
+                // Filter input
+                const filterEl = document.getElementById('zipBrowserFilter');
+                if (filterEl) {
+                    filterEl.addEventListener('input', () => {
+                        const q = filterEl.value.trim();
+                        renderZipBrowser(q ? allZipCodes.filter(z => z.startsWith(q)) : allZipCodes);
+                    });
+                }
+            } catch(e) {
+                console.warn('[ZIP Browser] Could not load ZIPs:', e);
+            }
+        }
+
         /* ── Init ── */
         resetPanels('Dallas');
         updateClearButton();
-        initMap();
+        loadZipBrowser();
     </script>
 </body>
 </html>
