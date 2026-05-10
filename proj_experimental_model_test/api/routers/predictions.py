@@ -51,13 +51,21 @@ def get_predictions(
             detail="Feature vectors (master table) not loaded in database. master table needs to be loaded in database.",
         )
 
+    # Check if zip code is in Dallas County
+    valid_zipcodes = db_manager.get_zipcodes()
+    if zipcode not in valid_zipcodes:
+        raise HTTPException(
+            status_code=404,
+            detail=f"ZIP code {zipcode} is not in Dallas County. This tool only covers Dallas County zip codes.",
+        )
+
     # Get the feature row from the feature_vectors table
     row = db_manager.get_feature_row(zipcode, year, month)
 
     if not row:
         raise HTTPException(
             status_code=404,
-            detail=f"No data found for zipcode {zipcode} with the requested year/month.",
+            detail=f"No data available for ZIP code {zipcode} for the selected time period. Try a different month/year.",
         )
 
     # Get current ZHVI and market data from the row

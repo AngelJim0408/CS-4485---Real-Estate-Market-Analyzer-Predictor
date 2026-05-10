@@ -583,7 +583,9 @@
 
             // All 3 attempts failed
             if (lastErr.message.includes('404')) {
-                showError('No data available for ZIP ' + zip + ' in the database.');
+                // Extract the API's detail message
+                const match = lastErr.message.match(/"detail"\s*:\s*"([^"]+)"/);
+                showError(match ? match[1] : 'No data available for ZIP ' + zip + ' in the database.');
             } else {
                 showError('Cannot reach the API. Make sure the server is running. (' + lastErr.message + ')');
             }
